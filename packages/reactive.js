@@ -1,4 +1,5 @@
-let activeEffect, shouldTrack
+let activeEffect,
+  shouldTrack = true
 
 let uid = 0
 const effectStack = []
@@ -115,7 +116,7 @@ function createSetter(shallow = false) {
         trigger(target, 'add', key, value)
       } else if (
         value !== oldValue &&
-        (value !== value || oldValue !== oldValue)
+        (value === value || oldValue === oldValue)
       ) {
         trigger(target, 'set', key, value, oldValue)
       }
@@ -142,8 +143,8 @@ function track(target, type, key) {
   }
 
   if (!dep.has(activeEffect)) {
-    dep.add(key, activeEffect)
-    activeEffect.deps?.push(dep)
+    dep.add(activeEffect)
+    activeEffect.deps.push(dep)
   }
 }
 
@@ -156,14 +157,15 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
   const computedRunners = []
 
   const add = (effectsToAdd) => {
-    effectsToAdd?.forEach((effect) => {
-      // 正在注册的时候不能同时触发
-      if (!shouldTrack || effect !== activeEffect) {
-        effect?.options?.computed
-          ? computedRunners.push(effect)
-          : effects.push(effect)
-      }
-    })
+    effectsToAdd &&
+      effectsToAdd.forEach((effect) => {
+        // 正在注册的时候不能同时触发
+        if (!shouldTrack || effect !== activeEffect) {
+          effect.options && effect.options.computed
+            ? computedRunners.push(effect)
+            : effects.push(effect)
+        }
+      })
   }
 
   if (type === 'clear') {
@@ -198,7 +200,7 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
   }
 
   const run = (effect) => {
-    if (effect?.options?.shecduler) {
+    if (effect.options && effect.options.shecduler) {
       effect.options.shecduler(effect)
     } else {
       effect()
@@ -210,22 +212,22 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
 }
 
 // 注册 updater
-function effect(fn, options) {
-  if (fn?._isEffect) {
+function effect(fn, options = {}) {
+  if (fn._isEffect) {
     fn = fn.raw
   }
 
   const _effect = function reactiveEffect(...args) {
-    if (!_effect?.active) {
+    if (!_effect.active) {
       return options.scheduler ? undefined : fn(...args)
     }
 
-    if (!effectStack.includes(effect)) {
-      cleanup(effect)
+    if (!effectStack.includes(_effect)) {
+      cleanup(_effect)
       try {
         enableTracking()
-        effectStack.push(effect)
-        activeEffect = effect
+        effectStack.push(_effect)
+        activeEffect = _effect
         return fn(...args)
       } finally {
         effectStack.pop()
@@ -243,6 +245,10 @@ function effect(fn, options) {
   _effect.raw = fn
   _effect.deps = []
   _effect.options = options
+
+  if (!options.lazy) {
+    _effect()
+  }
   return _effect
 }
 
@@ -253,7 +259,7 @@ function toRaw(observed) {
 function cleanup(effect) {
   const { deps } = effect
 
-  if (deps?.length) {
+  if (deps.length) {
     for (let i = 0; i < deps.length; i++) {
       deps[i].delete(effect)
     }
@@ -270,4 +276,6 @@ function resetTracking() {
   const last = trackStack.pop()
   shouldTrack = last === undefined ? true : last
 }
+
+export { reactive }
 ////////////////////////////////////////////////////////////////////
