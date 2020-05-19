@@ -2,12 +2,17 @@
 <html>
 <body>
   <script type="module">
-    import { reactive, effect } from './packages/reactive.js'
-    let n
-    const observed = reactive({ num: 0 })
-    effect(() => (n = observed.num))
-    observed.num = 7
-    console.log(n, observed)
+    import { reactive, effect, targetMap } from './packages/reactive.js'
+    const original = {
+      nested: {
+        foo: 1
+      },
+      array: [{ bar: 2 }]
+    }
+    const observed = reactive(original)
+    console.log(observed, '1')
+    console.log(observed.nested, '2')
+    console.log(observed.array, '3')
   </script>
 </body>
 </html>

@@ -26,6 +26,28 @@ const readonlyHandlers = {}
 const readonlyCollectionHandlers = {}
 const shallowReadonlyHandlers = {}
 const collectionTypes = new Set([Set, Map, WeakSet, WeakMap])
+const hasOwn = (obj, key) => obj.hasOwnProperty(key)
+
+// 数组三个方法的处理
+const arrayInstrumentations = {}
+// 兼容数组三个索引方法，收集他们相关的依赖
+;['includes', 'indexOf', 'lastIndexOf'].forEach((key) => {
+  arrayInstrumentations[key] = function (...args) {
+    const arra = toRaw(this)
+    for (let i = 0, l = this.length; i < l; i++) {
+      track(arr, 'get', i + '')
+    }
+
+    // 使用原始方法执行一次(有可能是 reactive 的)
+    const res = arr[key](...args)
+    if (res === -1 || res === false) {
+      // 如果结果失败，使用原始方法再执行一次
+      return arr[key](...args.map(toRaw))
+    } else {
+      return res
+    }
+  }
+})
 
 function readonly(target) {
   return createReactiveObject(
@@ -84,7 +106,11 @@ function createReactiveObject(
 
 function createGetter(isReadonly = false, shallow = false) {
   return function get(target, key, receiver) {
-    // TODO is array
+    const targetIsArray = Array.isArray(target)
+    if (targetIsArray && hasOwn(arrayInstrumentations, key)) {
+      return Reflect.get(arrayInstrumentations, key, receiver)
+    }
+
     const res = Reflect.get(...arguments)
 
     if (shallow) {
@@ -97,8 +123,8 @@ function createGetter(isReadonly = false, shallow = false) {
     !isReadonly && track(target, 'get', key)
     return res && typeof res === 'object'
       ? isReadonly
-        ? readonly(target)
-        : reactive(target)
+        ? readonly(res)
+        : reactive(res)
       : res
   }
 }
@@ -296,5 +322,5 @@ function markRaw(value) {
   return value
 }
 
-export { effect, reactive, isReactive, isReadonly, isProxy, markRaw }
+export { effect, reactive, isReactive, isReadonly, isProxy, markRaw, targetMap }
 ////////////////////////////////////////////////////////////////////
