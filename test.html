@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html>
 <body>
-  <script src="./packages/reactive.js"></script>
+  <script type="module">
+    import { reactive, effect } from './packages/reactive.js'
+    let n
+    const observed = reactive({ num: 0 })
+    effect(() => (n = observed.num))
+    observed.num = 7
+    console.log(n, observed)
+  </script>
 </body>
 </html>

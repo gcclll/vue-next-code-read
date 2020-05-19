@@ -13,6 +13,7 @@ const readonlyToRaw = new WeakMap()
 const rawToReadonly = new WeakMap()
 const rawToReactive = new WeakMap()
 const reactiveToRaw = new WeakMap()
+const rawValues = new WeakSet()
 const get = createGetter()
 const set = createSetter()
 const mutableHandlers = {
@@ -277,5 +278,23 @@ function resetTracking() {
   shouldTrack = last === undefined ? true : last
 }
 
-export { reactive }
+function isReactive(value) {
+  value = readonlyToRaw.get(value) || value
+  return reactiveToRaw.has(value)
+}
+
+function isReadonly(value) {
+  return readonlyToRaw.has(value)
+}
+
+function isProxy(value) {
+  return readonlyToRaw.has(value) || reactiveToRaw.has(value)
+}
+
+function markRaw(value) {
+  rawValues.add(value)
+  return value
+}
+
+export { effect, reactive, isReactive, isReadonly, isProxy, markRaw }
 ////////////////////////////////////////////////////////////////////
