@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
-<body>
-  <script type="module">
-    import { reactive, effect, targetMap } from './packages/reactive.js'
-    const original = {
-      nested: {
-        foo: 1
-      },
-      array: [{ bar: 2 }]
-    }
-    const observed = reactive(original)
-    console.log(observed, '1')
-    console.log(observed.nested, '2')
-    console.log(observed.array, '3')
-  </script>
-</body>
+  <body>
+    <script type="module">
+      import {
+        reactive,
+        effect,
+        targetMap,
+        toRaw,
+        shallowReactive,
+        isReactive
+      } from './packages/reactive.js'
+      const n = reactive({ foo: 1 })
+      const ob = shallowReactive({ n })
+
+      /* ob.n = reactive({ foo: 2 }) */
+      console.log(isReactive(ob.n))
+    </script>
+  </body>
 </html>
