@@ -22,7 +22,8 @@ const shallowSet = createSetter(true)
 const shallowGet = createGetter(false, true)
 const mutableHandlers = {
   get,
-  set
+  set,
+  deleteProperty
 }
 const mutableCollectionHandlers = {}
 const shallowReactiveHandlers = {
@@ -188,6 +189,18 @@ function createSetter(shallow = false) {
 
     return res
   }
+}
+
+// delete proxy
+function deleteProperty(target, key) {
+  const hadKey = target.hasOwnProperty(key)
+  const oldValue = target[key]
+  const result = Reflect.deleteProperty(target, key)
+  console.log({ result })
+  if (result && hadKey) {
+    trigger(target, 'delete', key, undefined, oldValue)
+  }
+  return result
 }
 
 // 收集依赖

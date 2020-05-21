@@ -10,11 +10,20 @@
         shallowReactive,
         isReactive
       } from './packages/reactive.js'
-      const n = reactive({ foo: 1 })
-      const ob = shallowReactive({ n })
 
-      /* ob.n = reactive({ foo: 2 }) */
-      console.log(isReactive(ob.n))
+      const target = { foo: 1, bar: 2 }
+      const n = reactive(target)
+      let dum
+      effect(() => {
+        console.log('updating...')
+        dum = n.bar
+      })
+      /* console.log(targetMap.get(target), 'map') */
+      console.log({ dum }, 'before')
+      console.log(Object.getOwnPropertyDescriptor(n, 'bar'), 'des')
+      delete n.bar
+      /* n.bar = 3 */
+      console.log({ dum }, 'after')
     </script>
   </body>
 </html>
