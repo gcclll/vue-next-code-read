@@ -23,7 +23,9 @@ const shallowGet = createGetter(false, true)
 const mutableHandlers = {
   get,
   set,
-  deleteProperty
+  deleteProperty,
+  has,
+  ownKeys
 }
 const mutableCollectionHandlers = {}
 const shallowReactiveHandlers = {
@@ -203,6 +205,17 @@ function deleteProperty(target, key) {
   return result
 }
 
+function has(target, key) {
+  const result = Reflect.has(target, key)
+  track(target, 'has', key)
+  return result
+}
+
+function ownKeys(target) {
+  track(target, 'iterate', ITERATE_KEY)
+  return Reflect.ownKeys(target)
+}
+
 // 收集依赖
 function track(target, type, key) {
   // 没有 effect: fn
@@ -256,6 +269,7 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
       }
     })
   } else {
+    console.log(key, '==')
     if (key !== void 0) {
       // 对象属性 deps
       add(depsMap.get(key))
@@ -265,6 +279,7 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
     const isAddOrDelete =
       type === 'add' || (type === 'delete' && !Array.isArray(target))
 
+    console.log({ type, key }, target instanceof Map)
     // 对象的属性的新增和删除，或者 Map 类型的 set 操作
     if (isAddOrDelete || (type === 'set' && target instanceof Map)) {
       add(depsMap.get(Array.isArray(target) ? 'length' : ITERATE_KEY))
@@ -382,6 +397,7 @@ export {
   markRaw,
   targetMap,
   toRaw,
-  shallowReactive
+  shallowReactive,
+  ITERATE_KEY
 }
 ////////////////////////////////////////////////////////////////////

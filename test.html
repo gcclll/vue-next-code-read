@@ -7,23 +7,28 @@
         effect,
         targetMap,
         toRaw,
+        ITERATE_KEY,
         shallowReactive,
         isReactive
       } from './packages/reactive.js'
 
       const target = { foo: 1, bar: 2 }
       const n = reactive(target)
-      let dum
-      effect(() => {
+      let dum, has
+      const updater = () => {
         console.log('updating...')
-        dum = n.bar
-      })
-      /* console.log(targetMap.get(target), 'map') */
-      console.log({ dum }, 'before')
-      console.log(Object.getOwnPropertyDescriptor(n, 'bar'), 'des')
-      delete n.bar
-      /* n.bar = 3 */
-      console.log({ dum }, 'after')
+        dum = Object.keys(n)
+      }
+      effect(updater)
+
+      const dep = targetMap.get(target).get(ITERATE_KEY)
+      for (let it of dep) {
+        console.log(it.raw, it.raw === updater, 'deps')
+      }
+
+      console.log(dum, 'before')
+      n.foo = 3
+      console.log(dum, 'after')
     </script>
   </body>
 </html>
