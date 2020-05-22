@@ -5,7 +5,7 @@ let activeEffect,
 
 let uid = 0
 const effectStack = []
-const __DEV__ = false
+const __DEV__ = true
 const ITERATE_KEY = Symbol(__DEV__ ? 'iterate key' : '')
 const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? 'map iterate key' : '')
 const trackStack = []
@@ -37,6 +37,12 @@ const readonlyHandlers = {}
 const readonlyCollectionHandlers = {}
 const shallowReadonlyHandlers = {}
 const collectionTypes = new Set([Set, Map, WeakSet, WeakMap])
+const isSymbol = (val) => typeof val === 'symbol'
+const builtInSymbols = new Set(
+  Object.getOwnPropertyNames(Symbol)
+    .map((key) => Symbol[key])
+    .filter(isSymbol)
+)
 const isObservableType = /*#__PURE__*/ makeMap(
   'Object,Array,Map,Set,WeakMap,WeakSet'
 )
@@ -115,7 +121,6 @@ function createReactiveObject(
   collectionHandlers
 ) {
   if (!target || typeof target !== 'object') {
-    // console.warn(`非对象类型不能被 reactive：${String(target)}`)
     return target
   }
 
@@ -150,6 +155,10 @@ function createGetter(isReadonly = false, shallow = false) {
 
     const res = Reflect.get(target, key, receiver)
 
+    if ((isSymbol(key) && builtInSymbols.has(key)) || key === '__proto__') {
+      return res
+    }
+
     if (shallow) {
       !isReadonly && track(target, 'get', key)
       return res
@@ -175,10 +184,11 @@ function createSetter(shallow = false) {
       // TODO !shallow is ref
     }
 
+    const hadKey = target.hasOwnProperty(key)
     const res = Reflect.set(target, key, value, receiver)
 
     if (target === toRaw(receiver)) {
-      if (!target.hasOwnProperty(key)) {
+      if (!hadKey) {
         // add
         trigger(target, 'add', key, value)
       } else if (
@@ -198,7 +208,6 @@ function deleteProperty(target, key) {
   const hadKey = target.hasOwnProperty(key)
   const oldValue = target[key]
   const result = Reflect.deleteProperty(target, key)
-  console.log({ result })
   if (result && hadKey) {
     trigger(target, 'delete', key, undefined, oldValue)
   }
@@ -235,6 +244,14 @@ function track(target, type, key) {
   if (!dep.has(activeEffect)) {
     dep.add(activeEffect)
     activeEffect.deps.push(dep)
+    if (__DEV__ && activeEffect.options && activeEffect.options.onTrack) {
+      activeEffect.options.onTrack({
+        effect: activeEffect,
+        target,
+        type,
+        key
+      })
+    }
   }
 }
 
@@ -243,8 +260,8 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
   const depsMap = targetMap.get(target)
   if (!depsMap) return
 
-  const effects = []
-  const computedRunners = []
+  const effects = new Set()
+  const computedRunners = new Set()
 
   const add = (effectsToAdd) => {
     effectsToAdd &&
@@ -252,8 +269,8 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
         // 正在注册的时候不能同时触发
         if (!shouldTrack || effect !== activeEffect) {
           effect.options && effect.options.computed
-            ? computedRunners.push(effect)
-            : effects.push(effect)
+            ? computedRunners.add(effect)
+            : effects.add(effect)
         }
       })
   }
@@ -269,7 +286,6 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
       }
     })
   } else {
-    console.log(key, '==')
     if (key !== void 0) {
       // 对象属性 deps
       add(depsMap.get(key))
@@ -279,7 +295,6 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
     const isAddOrDelete =
       type === 'add' || (type === 'delete' && !Array.isArray(target))
 
-    console.log({ type, key }, target instanceof Map)
     // 对象的属性的新增和删除，或者 Map 类型的 set 操作
     if (isAddOrDelete || (type === 'set' && target instanceof Map)) {
       add(depsMap.get(Array.isArray(target) ? 'length' : ITERATE_KEY))
@@ -292,8 +307,20 @@ function trigger(target, type, key, newValue, oldValue, oldTarget) {
   }
 
   const run = (effect) => {
-    if (effect.options && effect.options.shecduler) {
-      effect.options.shecduler(effect)
+    const hasOpt = !!effect.options
+    if (__DEV__ && hasOpt && effect.options.onTrigger) {
+      effect.options.onTrigger({
+        effect,
+        target,
+        key,
+        type,
+        newValue,
+        oldValue,
+        oldTarget
+      })
+    }
+    if (hasOpt && effect.options.scheduler) {
+      effect.options.scheduler(effect)
     } else {
       effect()
     }
@@ -349,6 +376,16 @@ function toRaw(observed) {
   return reactiveToRaw.get(observed) || observed
 }
 
+function stop(effect) {
+  if (effect.active) {
+    cleanup(effect)
+    if (effect.options && effect.options.onStop) {
+      effect.options.onStop()
+    }
+    effect.active = false
+  }
+}
+
 function cleanup(effect) {
   const { deps } = effect
 
@@ -398,6 +435,7 @@ export {
   targetMap,
   toRaw,
   shallowReactive,
-  ITERATE_KEY
+  ITERATE_KEY,
+  stop
 }
 ////////////////////////////////////////////////////////////////////
