@@ -20,3 +20,10 @@ export const toTypeString = (value) => objectToString.call(value)
 export const toRawType = (value) => {
   return toTypeString(value).slice(8, -1)
 }
+
+export const def = (obj, key, value) => {
+  Object.defineProperty(obj, key, {
+    configurable: true,
+    value
+  })
+}

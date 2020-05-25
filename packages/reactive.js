@@ -1,4 +1,4 @@
-import { makeMap, toRawType } from './util.js'
+import { makeMap, toRawType, def } from './util.js'
 
 let activeEffect,
   shouldTrack = true
@@ -11,15 +11,21 @@ const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? 'map iterate key' : '')
 const trackStack = []
 // target, map -> key, Set，保存依赖
 const targetMap = new WeakMap()
-const readonlyToRaw = new WeakMap()
-const rawToReadonly = new WeakMap()
-const rawToReactive = new WeakMap()
-const reactiveToRaw = new WeakMap()
+const ReactiveFlags = {
+  skip: '__v_skip',
+  isReactive: '__v_isReactive',
+  isReadonly: '__v_isReadonly',
+  raw: '__v_raw',
+  reactive: '__v_reactive',
+  readonly: '__v_readonly'
+}
 const rawValues = new WeakSet()
-const get = createGetter()
 const set = createSetter()
 const shallowSet = createSetter(true)
+const get = createGetter()
 const shallowGet = createGetter(false, true)
+const readonlyGet = createGetter(true)
+const shallowReadonlyGet = createGetter(true, true)
 const mutableHandlers = {
   get,
   set,
@@ -27,15 +33,41 @@ const mutableHandlers = {
   has,
   ownKeys
 }
-const mutableCollectionHandlers = {}
 const shallowReactiveHandlers = {
   ...mutableHandlers,
   set: shallowSet,
   get: shallowGet
 }
-const readonlyHandlers = {}
+
+const readonlyHandlers = {
+  get: readonlyGet,
+  has,
+  ownKeys,
+  set(target, key) {
+    if (__DEV__) {
+      console.warn(
+        `Set operation on key "${String(key)}" failed: target is readonly.`,
+        target
+      )
+    }
+    return true
+  },
+  deleteProperty(target, key) {
+    if (__DEV__) {
+      console.warn(
+        `Delete operation on key "${String(key)}" failed: target is readonly.`,
+        target
+      )
+    }
+    return true
+  }
+}
+const shallowReadonlyHandlers = {
+  ...readonlyHandlers,
+  get: shallowReadonlyGet
+}
+const mutableCollectionHandlers = {}
 const readonlyCollectionHandlers = {}
-const shallowReadonlyHandlers = {}
 const collectionTypes = new Set([Set, Map, WeakSet, WeakMap])
 const isSymbol = (val) => typeof val === 'symbol'
 const builtInSymbols = new Set(
@@ -49,10 +81,8 @@ const isObservableType = /*#__PURE__*/ makeMap(
 const hasOwn = (obj, key) => obj.hasOwnProperty(key)
 const canObserve = (value) => {
   return (
-    !value._isVue &&
-    !value._isVNode &&
+    !value.__v_skip &&
     isObservableType(toRawType(value)) &&
-    !rawValues.has(value) &&
     !Object.isFrozen(value)
   )
 }
@@ -81,8 +111,7 @@ const arrayInstrumentations = {}
 function readonly(target) {
   return createReactiveObject(
     target,
-    rawToReadonly,
-    readonlyToRaw,
+    true,
     readonlyHandlers,
     readonlyCollectionHandlers
   )
@@ -91,8 +120,7 @@ function readonly(target) {
 function shallowReactive(target) {
   return createReactiveObject(
     target,
-    rawToReactive,
-    reactiveToRaw,
+    false,
     shallowReactiveHandlers,
     mutableCollectionHandlers
   )
@@ -100,14 +128,13 @@ function shallowReactive(target) {
 
 // reactivity start
 function reactive(target) {
-  if (readonlyToRaw.has(target)) {
+  if (target && target.__v_isReadonly) {
     return target
   }
 
   return createReactiveObject(
     target,
-    rawToReactive,
-    reactiveToRaw,
+    false,
     mutableHandlers,
     mutableCollectionHandlers
   )
@@ -115,8 +142,7 @@ function reactive(target) {
 
 function createReactiveObject(
   target,
-  toProxy,
-  toRaw,
+  isReadonly,
   baseHandlers,
   collectionHandlers
 ) {
@@ -124,13 +150,14 @@ function createReactiveObject(
     return target
   }
 
-  let observed = toProxy.get(target)
-  if (observed !== void 0) {
-    return observed
+  if (target.__v_raw && !(isReadonly && target.__v_isReactive)) {
+    return target
   }
 
-  if (toRaw.has(target)) {
-    return target
+  // 之前的 toProxy，toRaw 不再使用，直接将两个版本追加到 target 上
+  const key = isReadonly ? ReactiveFlags.readonly : ReactiveFlags.reactive
+  if (hasOwn(target, key)) {
+    return target[key]
   }
 
   if (!canObserve(target)) {
@@ -140,14 +167,24 @@ function createReactiveObject(
   const handlers = collectionTypes.has(target.constructor)
     ? collectionHandlers
     : baseHandlers
-  observed = new Proxy(target, handlers)
-  toProxy.set(target, observed)
-  toRaw.set(observed, target)
+  const observed = new Proxy(target, handlers)
+
+  // 使用 defineProperty 给target 增加__v_xx 属性
+  def(target, key, observed)
+
   return observed
 }
 
 function createGetter(isReadonly = false, shallow = false) {
   return function get(target, key, receiver) {
+    if (key === ReactiveFlags.isReactive) {
+      return !isReadonly
+    } else if (key === ReactiveFlags.isReadonly) {
+      return isReadonly
+    } else if (key === ReactiveFlags.raw) {
+      return target
+    }
+
     const targetIsArray = Array.isArray(target)
     if (targetIsArray && hasOwn(arrayInstrumentations, key)) {
       return Reflect.get(arrayInstrumentations, key, receiver)
@@ -372,8 +409,7 @@ function effect(fn, options = {}) {
 }
 
 function toRaw(observed) {
-  observed = readonlyToRaw.get(observed) || observed
-  return reactiveToRaw.get(observed) || observed
+  return (observed && toRaw(observed.__v_raw)) || observed
 }
 
 function stop(effect) {
@@ -408,20 +444,22 @@ function resetTracking() {
 }
 
 function isReactive(value) {
-  value = readonlyToRaw.get(value) || value
-  return reactiveToRaw.has(value)
+  if (isReadonly(value)) {
+    return isReactive(value.__v_raw)
+  }
+  return !!(value && value.__v_isReactive)
 }
 
 function isReadonly(value) {
-  return readonlyToRaw.has(value)
+  return !!(value && value.__v_isReadonly)
 }
 
 function isProxy(value) {
-  return readonlyToRaw.has(value) || reactiveToRaw.has(value)
+  return isReactive(value) || isReadonly(value)
 }
 
 function markRaw(value) {
-  rawValues.add(value)
+  def(value, ReactiveFlags.skip, true)
   return value
 }
 

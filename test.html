@@ -9,17 +9,15 @@
         toRaw,
         ITERATE_KEY,
         shallowReactive,
-        isReactive
+        isReactive,
+        markRaw
       } from './packages/reactive.js'
-      let dummy = {}
-      const obj = reactive({})
-      effect(() => {
-        dummy = JSON.parse(JSON.stringify(obj))
+      const obj = reactive({
+        foo: { a: 1 },
+        bar: markRaw({ b: 2 })
       })
-
-      console.log(targetMap, dummy, 'before')
-      /* obj.a = 1 */
-      /* console.log(targetMap, dummy, 'after') */
+      console.log(isReactive(obj.foo), 'obj.foo')
+      console.log(isReactive(obj.bar), 'obj.bar')
     </script>
   </body>
 </html>
