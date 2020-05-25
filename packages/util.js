@@ -28,6 +28,9 @@ export const def = (obj, key, value) => {
   })
 }
 
+export const isObject = (val) => val !== null && typeof val === 'object'
+export const hasChanged = (newValue, oldValue) =>
+  newValue !== oldValue && (newValue === newValue || oldValue === oldValue)
 export const hasOwn = (target, key) => target.hasOwnProperty(key)
 
 export const isSymbol = (val) => typeof val === 'symbol'

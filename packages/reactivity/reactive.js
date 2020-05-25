@@ -13,6 +13,11 @@ import {
   shallowReactiveHandlers,
   shallowReadonlyHandlers
 } from './baseHandlers.js'
+import {
+  mutableCollectionHandlers,
+  readonlyCollectionHandlers,
+  shallowCollectionHandlers
+} from './collectionHandlers.js'
 
 const ReactiveFlags = {
   skip: '__v_skip',
@@ -23,10 +28,6 @@ const ReactiveFlags = {
   readonly: '__v_readonly'
 }
 
-// TODO
-const mutableCollectionHandlers = {}
-const readonlyCollectionHandlers = {}
-const shallowCollectionHandlers = {}
 const collectionTypes = new Set([Set, Map, WeakSet, WeakMap])
 
 const canObserve = (value) => {

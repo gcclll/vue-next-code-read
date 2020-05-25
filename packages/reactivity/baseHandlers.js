@@ -1,5 +1,5 @@
 import { ReactiveFlags, toRaw, readonly, reactive } from './reactive.js'
-import { isSymbol, hasOwn } from '../util.js'
+import { isSymbol, hasOwn, hasChanged } from '../util.js'
 import { track, trigger, ITERATE_KEY } from './effect.js'
 
 const builtInSymbols = new Set(
@@ -89,10 +89,7 @@ function createSetter(shallow = false) {
       if (!hadKey) {
         // add
         trigger(target, 'add', key, value)
-      } else if (
-        value !== oldValue &&
-        (value === value || oldValue === oldValue)
-      ) {
+      } else if (hasChanged(value, oldValue)) {
         trigger(target, 'set', key, value, oldValue)
       }
     }

@@ -12,20 +12,18 @@
         isReactive,
         markRaw
       } from './packages/reactivity/reactive.js'
-      let dummy = 0
-      const numbers = reactive({ num1: 3 })
+      var or = new Map()
+      var ob = reactive(or)
+
+      let dummy
       effect(() => {
-        dummy = 0
-        for (let key in numbers) {
-          dummy += numbers[key]
-        }
+        dummy = ob.get('key')
       })
 
-      console.log({ dummy }, 1)
-      numbers.num2 = 4
-      console.log({ dummy }, 2)
-      delete numbers.num1
-      console.log({ dummy }, 3)
+      console.log({ dummy }, '1')
+      ob.set('key', 'value')
+      console.log({ dummy }, '2')
+      console.log(targetMap.get(or), ob, or)
     </script>
   </body>
 </html>

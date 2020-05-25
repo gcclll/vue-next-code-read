@@ -188,4 +188,12 @@ function resetTracking() {
   shouldTrack = last === undefined ? true : last
 }
 
-export { effect, trigger, track, stop, targetMap, ITERATE_KEY }
+export {
+  effect,
+  trigger,
+  track,
+  stop,
+  targetMap,
+  ITERATE_KEY,
+  MAP_KEY_ITERATE_KEY
+}
