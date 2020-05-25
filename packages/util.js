@@ -27,3 +27,10 @@ export const def = (obj, key, value) => {
     value
   })
 }
+
+export const hasOwn = (target, key) => target.hasOwnProperty(key)
+
+export const isSymbol = (val) => typeof val === 'symbol'
+export const isObservableType = /*#__PURE__*/ makeMap(
+  'Object,Array,Map,Set,WeakMap,WeakSet'
+)

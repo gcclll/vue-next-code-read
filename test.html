@@ -11,13 +11,21 @@
         shallowReactive,
         isReactive,
         markRaw
-      } from './packages/reactive.js'
-      const obj = reactive({
-        foo: { a: 1 },
-        bar: markRaw({ b: 2 })
+      } from './packages/reactivity/reactive.js'
+      let dummy = 0
+      const numbers = reactive({ num1: 3 })
+      effect(() => {
+        dummy = 0
+        for (let key in numbers) {
+          dummy += numbers[key]
+        }
       })
-      console.log(isReactive(obj.foo), 'obj.foo')
-      console.log(isReactive(obj.bar), 'obj.bar')
+
+      console.log({ dummy }, 1)
+      numbers.num2 = 4
+      console.log({ dummy }, 2)
+      delete numbers.num1
+      console.log({ dummy }, 3)
     </script>
   </body>
 </html>

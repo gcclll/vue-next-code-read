@@ -4,7 +4,7 @@ import {
   toRaw,
   markRaw,
   shallowReactive
-} from '../../reactive.js'
+} from '../../reactivity/reactive.js'
 
 describe('reactivity/reactive', () => {
   test('Object', () => {

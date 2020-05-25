@@ -9,7 +9,7 @@ import {
   markRaw,
   ITERATE_KEY
   // ref
-} from '../../reactive.js'
+} from '../../reactivity/reactive.js'
 
 describe('reactivity/effect', () => {
   it('should run the passed function once (wrapped by a effect)', () => {
