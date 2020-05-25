@@ -15,15 +15,18 @@
       var or = new Map()
       var ob = reactive(or)
 
-      let dummy
+      const fn = () => {}
+      let dummy = []
       effect(() => {
-        dummy = ob.get('key')
+        for (let entry of ob) {
+          dummy.push(entry)
+          console.log(entry, 'effect')
+        }
       })
 
-      console.log({ dummy }, '1')
-      ob.set('key', 'value')
-      console.log({ dummy }, '2')
-      console.log(targetMap.get(or), ob, or)
+      console.log(dummy, 0)
+      ob.set('a', 1)
+      console.log(dummy, 1)
     </script>
   </body>
 </html>
