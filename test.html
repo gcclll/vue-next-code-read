@@ -18,10 +18,7 @@
       const fn = () => {}
       let dummy = []
       effect(() => {
-        for (let entry of ob) {
-          dummy.push(entry)
-          console.log(entry, 'effect')
-        }
+        dummy = Object.keys(ob)
       })
 
       console.log(dummy, 0)
