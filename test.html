@@ -12,20 +12,20 @@
         isReactive,
         markRaw
       } from './packages/reactivity/reactive.js'
-      var or = new Map()
-      var ob = reactive(or)
 
-      const fn = () => {}
-      let keys, values, entries
+      const key1 = {}
+      const key11 = reactive(key1)
+      const ob = reactive(new Map())
+      let n1, n2
       effect(() => {
-        keys = ob.keys()
-        values = ob.values()
-        entries = ob.entries()
+        n1 = ob.get(key1)
+        n2 = ob.get(key11)
       })
 
-      console.log(keys.next(), values.next(), entries.next(), 0)
-      ob.set('a', 1)
-      console.log(keys.next(), values.next(), entries.next(), 1)
+      ob.set(key1, '1')
+      console.log({ n1, n2 }, ob, '1')
+      ob.set(key11, '11')
+      console.log({ n1, n2 }, ob, '2')
     </script>
   </body>
 </html>

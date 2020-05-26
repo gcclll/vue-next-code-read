@@ -77,7 +77,7 @@ function createForEach(isReadonly, shallow) {
 function deleteEntry(key) {
   const target = toRaw(this)
   const { has, get, delete: del } = getProto(target)
-  const hadKey = has.call(target, key)
+  let hadKey = has.call(target, key)
   if (!hadKey) {
     key = toRaw(key)
     hadKey = has.call(target, key)

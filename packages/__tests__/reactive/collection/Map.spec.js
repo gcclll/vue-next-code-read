@@ -89,11 +89,11 @@ describe('reactivity/collections', () => {
     })
 
     it('should observe forEach iteration', () => {
-      let dummy: any
+      let dummy
       const map = reactive(new Map())
       effect(() => {
         dummy = 0
-        map.forEach((num: any) => (dummy += num))
+        map.forEach((num) => (dummy += num))
       })
 
       expect(dummy).toBe(0)
@@ -203,7 +203,7 @@ describe('reactivity/collections', () => {
 
     it('should not observe custom property mutations', () => {
       let dummy
-      const map: any = reactive(new Map())
+      const map = reactive(new Map())
       effect(() => (dummy = map.customProp))
 
       expect(dummy).toBe(undefined)
@@ -282,7 +282,7 @@ describe('reactivity/collections', () => {
 
     it('should observe nested values in iterations (forEach)', () => {
       const map = reactive(new Map([[1, { foo: 1 }]]))
-      let dummy: any
+      let dummy
       effect(() => {
         dummy = 0
         map.forEach((value) => {
@@ -297,7 +297,7 @@ describe('reactivity/collections', () => {
 
     it('should observe nested values in iterations (values)', () => {
       const map = reactive(new Map([[1, { foo: 1 }]]))
-      let dummy: any
+      let dummy
       effect(() => {
         dummy = 0
         for (const value of map.values()) {
@@ -313,7 +313,7 @@ describe('reactivity/collections', () => {
     it('should observe nested values in iterations (entries)', () => {
       const key = {}
       const map = reactive(new Map([[key, { foo: 1 }]]))
-      let dummy: any
+      let dummy
       effect(() => {
         dummy = 0
         for (const [key, value] of map.entries()) {
@@ -331,7 +331,7 @@ describe('reactivity/collections', () => {
     it('should observe nested values in iterations (for...of)', () => {
       const key = {}
       const map = reactive(new Map([[key, { foo: 1 }]]))
-      let dummy: any
+      let dummy
       effect(() => {
         dummy = 0
         for (const [key, value] of map) {
@@ -408,9 +408,6 @@ describe('reactivity/collections', () => {
       raw.set(key, 1)
       const map = reactive(raw)
       map.set(key, 2)
-      expect(
-        `Reactive Map contains both the raw and reactive`
-      ).toHaveBeenWarned()
     })
 
     // #877
