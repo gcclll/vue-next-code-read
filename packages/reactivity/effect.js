@@ -195,5 +195,6 @@ export {
   stop,
   targetMap,
   ITERATE_KEY,
-  MAP_KEY_ITERATE_KEY
+  MAP_KEY_ITERATE_KEY,
+  __DEV__
 }

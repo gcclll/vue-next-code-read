@@ -12,20 +12,26 @@
         isReactive,
         markRaw
       } from './packages/reactivity/reactive.js'
+      import {
+        ref,
+        toRef,
+        toRefs,
+        createRef,
+        customRef,
+        shallowRef
+      } from './packages/reactivity/ref.js'
+      const r = ref({ nested: { num: 0 } })
+      console.log(r)
 
-      const key1 = {}
-      const key11 = reactive(key1)
-      const ob = reactive(new Map())
-      let n1, n2
+      let dummy
       effect(() => {
-        n1 = ob.get(key1)
-        n2 = ob.get(key11)
+        dummy = r.value.nested.num
+        console.log('updated...')
       })
 
-      ob.set(key1, '1')
-      console.log({ n1, n2 }, ob, '1')
-      ob.set(key11, '11')
-      console.log({ n1, n2 }, ob, '2')
+      console.log({ dummy }, '1')
+      r.value.nested.num = 100
+      console.log({ dummy }, '2')
     </script>
   </body>
 </html>

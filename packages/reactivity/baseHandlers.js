@@ -1,6 +1,7 @@
 import { ReactiveFlags, toRaw, readonly, reactive } from './reactive.js'
 import { isSymbol, hasOwn, hasChanged } from '../util.js'
 import { track, trigger, ITERATE_KEY } from './effect.js'
+import { isRef } from './ref.js'
 
 const builtInSymbols = new Set(
   Object.getOwnPropertyNames(Symbol)
@@ -59,7 +60,13 @@ function createGetter(isReadonly = false, shallow = false) {
       return res
     }
 
-    // TODO is ref
+    if (isRef(res)) {
+      if (targetIsArray) {
+        !isReadonly && track(target, 'get', key)
+        return res
+      }
+      return res.value
+    }
 
     !isReadonly && track(target, 'get', key)
     return res && typeof res === 'object'
@@ -79,7 +86,10 @@ function createSetter(shallow = false) {
 
     if (!shallow) {
       value = toRaw(value)
-      // TODO !shallow is ref
+      if (!Array.isArray(target) && isRef(oldValue) && !isRef(value)) {
+        oldValue.value = value
+        return true
+      }
     }
 
     const hadKey = target.hasOwnProperty(key)

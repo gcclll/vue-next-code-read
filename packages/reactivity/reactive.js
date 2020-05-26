@@ -151,6 +151,7 @@ export {
   ITERATE_KEY,
   stop,
   readonly,
-  ReactiveFlags
+  ReactiveFlags,
+  collectionTypes
 }
 ////////////////////////////////////////////////////////////////////
