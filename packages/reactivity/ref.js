@@ -65,6 +65,8 @@ export function customRef(factory) {
       set(v)
     }
   }
+
+  return r
 }
 
 export function toRefs(object) {

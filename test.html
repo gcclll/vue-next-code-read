@@ -18,20 +18,31 @@
         toRefs,
         createRef,
         customRef,
-        shallowRef
+        shallowRef,
+        isRef
       } from './packages/reactivity/ref.js'
-      const r = ref({ nested: { num: 0 } })
-      console.log(r)
 
-      let dummy
-      effect(() => {
-        dummy = r.value.nested.num
-        console.log('updated...')
+      const a = ref(1)
+      const obj = reactive({
+        a,
+        b: {
+          c: a
+        }
       })
 
-      console.log({ dummy }, '1')
-      r.value.nested.num = 100
-      console.log({ dummy }, '2')
+      let dummy1, dummy2
+      effect(() => {
+        dummy1 = obj.a
+        dummy2 = obj.b.c
+      })
+
+      console.log({ dummy1, dummy2, equal: dummy1 === dummy2 }, '1')
+      a.value++
+      console.log(obj, '2')
+      obj.a++
+      console.log(obj, '3')
+      obj.b.c++
+      console.log(obj, '4')
     </script>
   </body>
 </html>
