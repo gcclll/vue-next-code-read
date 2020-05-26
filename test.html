@@ -16,14 +16,16 @@
       var ob = reactive(or)
 
       const fn = () => {}
-      let dummy = []
+      let keys, values, entries
       effect(() => {
-        dummy = Object.keys(ob)
+        keys = ob.keys()
+        values = ob.values()
+        entries = ob.entries()
       })
 
-      console.log(dummy, 0)
+      console.log(keys.next(), values.next(), entries.next(), 0)
       ob.set('a', 1)
-      console.log(dummy, 1)
+      console.log(keys.next(), values.next(), entries.next(), 1)
     </script>
   </body>
 </html>

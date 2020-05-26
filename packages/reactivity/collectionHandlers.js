@@ -158,7 +158,6 @@ function createIterableMethod(method, isReadonly, shallow) {
     !isReadonly &&
       track(target, 'iterate', isKeyOnley ? MAP_KEY_ITERATE_KEY : ITERATE_KEY)
 
-    console.log({ method, isMap, isPair, isKeyOnley })
     return {
       next() {
         // 原本的迭代器
@@ -166,7 +165,7 @@ function createIterableMethod(method, isReadonly, shallow) {
         return done
           ? { value, done }
           : {
-              value: isPair ? [wrap(value[0], wrap(value[1]))] : wrap(value),
+              value: isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value),
               done
             }
       },
@@ -249,7 +248,6 @@ function createInstrumentationGetter(isReadonly, shallow) {
       default:
         break
     }
-    console.log(target, key, 'getter')
     return Reflect.get(
       hasOwn(instrumentations, key) && key in target
         ? instrumentations
