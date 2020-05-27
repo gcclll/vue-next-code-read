@@ -10,7 +10,8 @@
         ITERATE_KEY,
         shallowReactive,
         isReactive,
-        markRaw
+        markRaw,
+        computed
       } from './packages/reactivity/reactive.js'
       import {
         ref,
@@ -21,28 +22,27 @@
         shallowRef,
         isRef
       } from './packages/reactivity/ref.js'
-
-      const a = ref(1)
-      const obj = reactive({
-        a,
-        b: {
-          c: a
-        }
-      })
-
-      let dummy1, dummy2
-      effect(() => {
-        dummy1 = obj.a
-        dummy2 = obj.b.c
-      })
-
-      console.log({ dummy1, dummy2, equal: dummy1 === dummy2 }, '1')
-      a.value++
-      console.log(obj, '2')
-      obj.a++
-      console.log(obj, '3')
-      obj.b.c++
-      console.log(obj, '4')
+      const value = reactive({ foo: 0 })
+      const c1 = computed(() => value.foo, 'c1')
+      const c2 = computed(() => c1.value + 1, 'c2')
+      console.log(c2.value, 'c2.value 1')
+      console.log(c1.value, 'c1.value 1')
+      const dep = targetMap.get(toRaw(value))
+      console.log(dep, dep.get('foo').values().next().value === c1.effect)
+      console.log(
+        c1.effect.deps,
+        c1.effect.deps[0].values().next().value === c1.effect,
+        'c1 deps'
+      )
+      console.log(
+        c2.effect.deps,
+        c2.effect.deps[0].values().next().value === c2.effect,
+        'c2 deps'
+      )
+      value.foo++
+      console.log(c1, c2)
+      console.log(c2.value, 'c2.value 2')
+      console.log(c1.value, 'c1.value 2')
     </script>
   </body>
 </html>
