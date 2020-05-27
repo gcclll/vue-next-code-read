@@ -1,5 +1,5 @@
 import { effect, reactive, isReactive } from '../../reactivity/reactive.js'
-// import { computed } from '@vue/runtime-dom'
+import { computed } from '../../reactivity/computed.js'
 import {
   ref,
   Ref,
@@ -195,7 +195,7 @@ describe('reactivity/ref', () => {
 
   test('isRef', () => {
     expect(isRef(ref(1))).toBe(true)
-    // expect(isRef(computed(() => 1))).toBe(true)
+    expect(isRef(computed(() => 1))).toBe(true)
 
     expect(isRef(0)).toBe(false)
     expect(isRef(1)).toBe(false)

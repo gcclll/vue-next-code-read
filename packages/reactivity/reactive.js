@@ -6,6 +6,8 @@ import {
   isSymbol,
   isObservableType
 } from '../util.js'
+import { computed } from './computed.js'
+import { ref } from './ref.js'
 import { effect, stop, ITERATE_KEY, targetMap } from './effect.js'
 import {
   mutableHandlers,
@@ -152,6 +154,8 @@ export {
   stop,
   readonly,
   ReactiveFlags,
-  collectionTypes
+  collectionTypes,
+  computed,
+  ref
 }
 ////////////////////////////////////////////////////////////////////
