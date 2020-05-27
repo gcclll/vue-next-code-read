@@ -1,7 +1,7 @@
 import { __DEV__, effect, trigger, track, targetMap } from './effect.js'
 const noop = () => {}
 
-export function computed(getterOrOptions, id) {
+export function computed(getterOrOptions) {
   let getter, setter
 
   if (typeof getterOrOptions === 'function') {
