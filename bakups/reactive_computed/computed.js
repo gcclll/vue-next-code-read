@@ -1,0 +1,51 @@
+import { __DEV__, effect, ReactiveEffect, trigger, track } from './effect.js'
+const noop = () => {}
+
+export function computed(getterOrOptions) {
+  let getter, setter
+
+  if (typeof getterOrOptions === 'function') {
+    getter = getterOrOptions
+    setter = __DEV__
+      ? () => {
+          throw new Error('计算属性只读。')
+        }
+      : noop
+  } else {
+    getter = getterOrOptions.get
+    setter = getterOrOptions.set
+  }
+
+  let dirty = true
+  let value
+  let computed
+
+  const runner = effect(getter, {
+    lazy: true,
+    computed: true,
+    scheduler: () => {
+      if (!dirty) {
+        dirty = true
+        trigger(computed, 'set', 'value')
+      }
+    }
+  })
+
+  computed = {
+    __v_isRef: true,
+    effect: runner,
+    get value() {
+      if (dirty) {
+        value = runner()
+        dirty = false
+      }
+      track(computed, 'get', 'value')
+      return value
+    },
+    set value(newValue) {
+      setter(newValue)
+    }
+  }
+
+  return computed
+}
