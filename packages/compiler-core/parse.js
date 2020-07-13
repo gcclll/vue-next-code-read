@@ -99,6 +99,17 @@ function isEnd(
 
   // mode 为 TextModes 各种情况
   // ...省略
+  switch (mode) {
+    case TextModes.DATA:
+      if (s.startsWith("</")) {
+        // 标签
+        for (let i = ancestors.length - 1; i >= 0; --i) {
+          if (startsWithEndTagOpen(s, ancestors[i].tag)) {
+            return true;
+          }
+        }
+      }
+  }
 
   // 是 TextModes.TEXT 直接返回 source 的内容是否为空了
   return !s;
@@ -124,4 +135,14 @@ function getSelection(
     end,
     source: context.originalSource.slice(start.offset, end.offset),
   };
+}
+jj;
+
+// 匹配：</tag> 或</tag 没有 `>` 的情况???
+function startsWithEndTagOpen(source, tag) {
+  return (
+    source.startsWith("</") &&
+    source.substr(2, tag.length).toLowerCase() === tag.toLowerCase() &&
+    /[\t\n\f />]/.test(source[2 + tag.length] || ">")
+  );
 }
