@@ -61,7 +61,7 @@ function parseChildren(
       node = parseText(context, mode);
     }
 
-    console.log(node);
+    console.log(context);
   }
 
   let removedWhitespace = false;
