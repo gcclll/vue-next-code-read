@@ -80,12 +80,14 @@ function parseChildren(
   const ns = parent ? parent.ns : Namespaces.HTML;
   const nodes /*TemplateChildNode[]*/ = [];
 
+  let i = 0;
   while (!isEnd(context, mode, ancestors)) {
     // do sth
 
     const s = context.source;
     let node = undefined;
 
+    console.log(s, i++);
     // 由于 baseparse里面传过来的是个 DATA 类型，因此会走到这个 if 里
     // 面去解析
     if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
@@ -124,7 +126,7 @@ function parseChildren(
           }
         } else if (/[a-z]/i.test(s[1])) {
           // 解析起始标签，即这里才是标签最开始的位置。
-          node = parseElement(context, ancestors);
+          // node = parseElement(context, ancestors);
         } else if ([s[1] === "?"]) {
           // <? 开始的
           emitError(

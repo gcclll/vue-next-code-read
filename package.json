@@ -9,6 +9,8 @@
   },
   "scripts": {
     "jest": "jest",
+    "jest-reactivity": "jest reactivity",
+    "jest-compiler": "jest compiler-core",
     "compiler": "npx babel-node --inspect --presets @babel/preset-env ./packages/compiler-core/test.js"
   },
   "dependencies": {
