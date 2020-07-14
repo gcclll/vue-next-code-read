@@ -4,8 +4,8 @@ import { advancePositionWithMutation } from "./utils.js";
 import { ErrorCodes, createCompilerError, defaultOnError } from "./error.js";
 
 const TagType = {
-  Start,
-  End,
+  Start: 0,
+  End: 1,
 };
 
 const decodeRE = /&(gt|lt|amp|apos|quot);/g;
@@ -76,7 +76,7 @@ function parseChildren(
   ancestors /*ElementNode[]*/
 ) {
   // ...
-  const parent = last(ancesotrs);
+  const parent = last(ancestors);
   const ns = parent ? parent.ns : Namespaces.HTML;
   const nodes /*TemplateChildNode[]*/ = [];
 
@@ -92,6 +92,7 @@ function parseChildren(
       // 过略掉非文本的
       if (!context.inVPre && s.startsWith(context.options.delimiters[0])) {
         // ... 插值处理{{}}
+        // node = parseInterpolation(context, mode)
       } else if (mode === TextModes.DATA && s[0] === "<") {
         // ... 标签开头 <...
         if (s.length === 1) {
@@ -123,7 +124,7 @@ function parseChildren(
           }
         } else if (/[a-z]/i.test(s[1])) {
           // 解析起始标签，即这里才是标签最开始的位置。
-          node = parseElement(context, ancesotrs);
+          node = parseElement(context, ancestors);
         } else if ([s[1] === "?"]) {
           // <? 开始的
           emitError(
