@@ -1,6 +1,8 @@
 module.exports = {
   globals: {
     __TEST__: true,
+    __DEV__: true,
+    __BROWSER__: true,
     babelConfig: true,
   },
   collectCoverageFrom: [

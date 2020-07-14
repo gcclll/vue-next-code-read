@@ -1,3 +1,6 @@
+export const Namespaces = {
+  HTML: 0,
+};
 export const NodeTypes = {
   ROOT: 0,
   ELEMENT: 1,

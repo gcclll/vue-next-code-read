@@ -1,6 +1,12 @@
 import { NO } from "../util.js";
-import { createRoot, NodeTypes } from "./ast.js";
+import { createRoot, NodeTypes, Namespaces } from "./ast.js";
 import { advancePositionWithMutation } from "./utils.js";
+import { ErrorCodes, createCompilerError, defaultOnError } from "./error.js";
+
+const TagType = {
+  Start,
+  End,
+};
 
 const decodeRE = /&(gt|lt|amp|apos|quot);/g;
 const decodeMap = {
@@ -30,7 +36,7 @@ export const defaultParserOptions = {
   isCustomElement: NO,
   decodeEntities: (rawText) =>
     rawText.replace(decodeRE, (_, p1) => decodeMap[p1]),
-  onError: null,
+  onError: defaultOnError,
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,12 +73,14 @@ function createParserContext(context, options) /*ParserContext*/ {
 function parseChildren(
   context /* ParserContext*/,
   mode /*TextModes*/,
-  ancesotrs /*ElementNode[]*/
+  ancestors /*ElementNode[]*/
 ) {
   // ...
+  const parent = last(ancesotrs);
+  const ns = parent ? parent.ns : Namespaces.HTML;
   const nodes /*TemplateChildNode[]*/ = [];
 
-  while (!isEnd(context, mode, ancesotrs)) {
+  while (!isEnd(context, mode, ancestors)) {
     // do sth
 
     const s = context.source;
@@ -86,6 +94,48 @@ function parseChildren(
         // ... 插值处理{{}}
       } else if (mode === TextModes.DATA && s[0] === "<") {
         // ... 标签开头 <...
+        if (s.length === 1) {
+          emitError(context, ErrorCodes.EOF_BEFORE_TAG_NAME, 1);
+        } else if (s[1] === "!") {
+          // TODO 注释处理，<!-- ...
+        } else if (s[1] === "/") {
+          // </...
+          if (s.length === 2) {
+            emitError(context, ErrorCodes.EOF_BEFORE_TAG_NAME, 2);
+          } else if (s[2] === ">") {
+            // </> 不带标签名的无效标签
+            emitError(context, ErrorCodes.MISSING_END_TAG_NAME, 2);
+            // 过滤掉 </> 这三个字符串，offset>>3 退出本次循环继续解析
+            advanceBy(context, 3);
+            continue;
+          } else if (/[a-z]/i.test(s[2])) {
+            //
+            emitError(context, ErrorCodes.X_INVALID_END_TAG);
+            // parseTag(context, TagType.End, parent);
+            continue;
+          } else {
+            emitError(
+              context,
+              ErrorCodes.INVALID_FIRST_CHARACTER_OF_TAG_NAME,
+              2
+            );
+            // node = parseBogusComment(context)
+          }
+        } else if (/[a-z]/i.test(s[1])) {
+          // 解析起始标签，即这里才是标签最开始的位置。
+          node = parseElement(context, ancesotrs);
+        } else if ([s[1] === "?"]) {
+          // <? 开始的
+          emitError(
+            context,
+            ErrorCodes.UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME,
+            1
+          );
+          // node = parseBogusComment(context)
+        } else {
+          // 其他情况都视为非法
+          emitError(context, ErrorCodes.INVALID_FIRST_CHARACTER_OF_TAG_NAME, 1);
+        }
       }
 
       // ... 到这里也就是说文本节点不会被这个 if 处理，而是直接到
@@ -244,4 +294,18 @@ function advanceBy(context, numberOfCharacters) {
   const { source } = context;
   advancePositionWithMutation(context, source, numberOfCharacters);
   context.source = source.slice(numberOfCharacters);
+}
+
+function emitError(context, code, offset, loc = getCursor(context)) {
+  if (offset) {
+    loc.offset += offset;
+    loc.column += offset;
+  }
+  context.options.onError(
+    createCompilerError(code, {
+      start: loc,
+      end: loc,
+      source: "",
+    })
+  );
 }
