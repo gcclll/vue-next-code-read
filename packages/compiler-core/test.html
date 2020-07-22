@@ -7,7 +7,11 @@
   <script type="module">
       import { baseParse } from './parse.js'
 
-      const ast = baseParse('some text')
+      const ast = baseParse('some text</div>', {
+        onError(e) {
+          console.log(e)
+        }
+      })
       console.log(ast)
   </script>
 </body>

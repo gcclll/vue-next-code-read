@@ -1,8 +1,9 @@
-import { NO } from "../util.js";
+// import { NO } from "../util.js";
 import { createRoot, NodeTypes, Namespaces } from "./ast.js";
 import { advancePositionWithMutation } from "./utils.js";
 import { ErrorCodes, createCompilerError, defaultOnError } from "./error.js";
 
+const NO = 0;
 const TagType = {
   Start: 0,
   End: 1,
@@ -112,7 +113,7 @@ function parseChildren(
             advanceBy(context, 3);
             continue;
           } else if (/[a-z]/i.test(s[2])) {
-            //
+            // 这里都出错了，为啥后面还有个 parseTag ???
             emitError(context, ErrorCodes.X_INVALID_END_TAG);
             parseTag(context, TagType.End, parent);
             continue;
@@ -205,7 +206,23 @@ function parseTextData(context, length, mode) {
   );
 }
 
-function parseTag(context, type, parent) {}
+function parseTag(context, type, parent) {
+  // 获取当前解析的起始位置，此时值应该是 some text 的长度
+  const start = getCursor(context);
+  // 匹配 </div 过滤掉空格字符，但是为什么要把 > 给忽略掉???
+  const match = /^<\/?([a-z][^\t\r\n\f />]*)/i.exec(context.source);
+  const tag = match[1];
+  const ns = context.options.getNamespace(tag, parent);
+  // log1: 改变位移，将 offset 定位到 </div> 的最有一个 > 上
+  // 在这里 context.offset = 10, context.line = 1
+  advanceBy(context, match[0].length);
+  // 过滤掉空格
+  advanceSpaces(context);
+  // log2: 经过 advance之后 context.offset = 15, context.line = 1
+  // 正好过滤 </div 5个字符
+  const cursor = getCursor(context);
+  const currSource = context.source;
+}
 ///////////////////////////////////////////////////////////////////////////////
 //                               b3.辅助类函数                                //
 ///////////////////////////////////////////////////////////////////////////////
@@ -292,6 +309,14 @@ function pushNode(nodes, node) {
 
 function last(ns) {
   return ns[ns.length - 1];
+}
+
+// 过滤掉空格
+function advanceSpaces(context) {
+  const match = /^[\t\r\n\f ]+/.exec(context.source);
+  if (match) {
+    advanceBy(context, match[0].length);
+  }
 }
 
 function advanceBy(context, numberOfCharacters) {
