@@ -114,7 +114,7 @@ function parseChildren(
           } else if (/[a-z]/i.test(s[2])) {
             //
             emitError(context, ErrorCodes.X_INVALID_END_TAG);
-            // parseTag(context, TagType.End, parent);
+            parseTag(context, TagType.End, parent);
             continue;
           } else {
             emitError(
@@ -205,6 +205,7 @@ function parseTextData(context, length, mode) {
   );
 }
 
+function parseTag(context, type, parent) {}
 ///////////////////////////////////////////////////////////////////////////////
 //                               b3.辅助类函数                                //
 ///////////////////////////////////////////////////////////////////////////////
