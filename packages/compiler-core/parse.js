@@ -232,6 +232,10 @@ function parseInterpolation(context, mode) {
     return undefined;
   }
 
+  const start = getCursor(context);
+  advanceBy(context, open.length);
+
+  // 下面是从 {{ 之后的字符串开始解析
   const innerStart = getCursor(context),
     innerEnd = getCursor(context),
     // 插值里面的字符串长度
@@ -265,7 +269,7 @@ function parseInterpolation(context, mode) {
       content,
       loc: getSelection(context, innerStart, innerEnd),
     },
-    loc: getSelection(context, innerStart),
+    loc: getSelection(context, start),
   };
 }
 ///////////////////////////////////////////////////////////////////////////////

@@ -37,5 +37,31 @@ describe("compiler: parse", () => {
         },
       });
     });
+
+    test("text with interpolation", () => {
+      const ast = baseParse("some {{ foo + bar }} text");
+      const text1 = ast.children[0],
+        text2 = ast.children[2];
+
+      expect(text1).toStrictEqual({
+        type: NodeTypes.TEXT,
+        content: "some ",
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          source: "some ",
+          end: { offset: 5, line: 1, column: 6 },
+        },
+      });
+
+      expect(text2).toStrictEqual({
+        type: NodeTypes.TEXT,
+        content: " text",
+        loc: {
+          start: { offset: 20, line: 1, column: 21 },
+          source: " text",
+          end: { offset: 25, line: 1, column: 26 },
+        },
+      });
+    });
   });
 });
