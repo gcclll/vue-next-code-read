@@ -88,14 +88,13 @@ function parseChildren(
     const s = context.source;
     let node = undefined;
 
-    console.log(s, i++);
     // 由于 baseparse里面传过来的是个 DATA 类型，因此会走到这个 if 里
     // 面去解析
     if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
       // 过略掉非文本的
       if (!context.inVPre && s.startsWith(context.options.delimiters[0])) {
         // ... 插值处理{{}}
-        // node = parseInterpolation(context, mode)
+        node = parseInterpolation(context, mode);
       } else if (mode === TextModes.DATA && s[0] === "<") {
         // ... 标签开头 <...
         if (s.length === 1) {
@@ -222,6 +221,52 @@ function parseTag(context, type, parent) {
   // 正好过滤 </div 5个字符
   const cursor = getCursor(context);
   const currSource = context.source;
+}
+
+function parseInterpolation(context, mode) {
+  // 找出插值模板的开始和结束符号，默认是 {{ 和 }}
+  const [open, close] = context.options.delimiters;
+  const closeIndex = context.source.indexOf(close, open.length);
+  if (closeIndex === -1) {
+    emitError(context, ErrorCodes.X_MISSING_INTERPOLATION_END);
+    return undefined;
+  }
+
+  const innerStart = getCursor(context),
+    innerEnd = getCursor(context),
+    // 插值里面的字符串长度
+    rawContentLength = closeIndex - open.length,
+    // 插值里面的字符串内容
+    rawContent = context.source.slice(0, rawContentLength),
+    preTrimContent = parseTextData(context, rawContentLength, mode),
+    content = preTrimContent.trim(),
+    startOffset = preTrimContent.indexOf(content);
+  if (startOffset > 0) {
+    advancePositionWithMutation(innerStart, rawContent, startOffset);
+  }
+
+  // {{ foo + bar }} ->
+  // res = (' foo + bar '.length - 'foo + bar'.length - ' '.length)
+  // 插值里面字符串的长度 - 去掉空格后的长度 - 起始空格的长度，得到的
+  // 就是结束位置的 offset
+  const endOffset =
+    rawContentLength - (preTrimContent.length - content.length - startOffset);
+  advancePositionWithMutation(innerEnd, rawContent, endOffset);
+  // 定位到 }} 位置
+  advanceBy(context, close.length);
+
+  console.log(innerEnd, innerStart, "1");
+  return {
+    type: NodeTypes.INTERPOLATION,
+    content: {
+      type: NodeTypes.SIMPLE_EXPRESSION,
+      isStatic: false,
+      isConstant: false,
+      content,
+      loc: getSelection(context, innerStart, innerEnd),
+    },
+    loc: getSelection(context, innerStart),
+  };
 }
 ///////////////////////////////////////////////////////////////////////////////
 //                               b3.辅助类函数                                //
