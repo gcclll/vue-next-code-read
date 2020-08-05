@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title></title>
-</head>
-<body>
-  <script type="module">
+  <head>
+    <title></title>
+  </head>
+  <body>
+    <script type="module">
       import { baseParse } from './parse.js'
 
-      const ast = baseParse('some {{ foo + bar }} text')
+      const ast = baseParse('some <span>{{ foo < bar + foo }} text</span>')
       console.log(ast.children)
-  </script>
-</body>
+    </script>
+  </body>
 </html>
