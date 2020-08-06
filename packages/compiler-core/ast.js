@@ -1,6 +1,14 @@
 export const Namespaces = {
-  HTML: 0,
-};
+  HTML: 0
+}
+
+export const ElementTypes = {
+  ELEMENT: 0,
+  COMPONENT: 1,
+  SLOT: 2,
+  TEMPLATE: 3
+}
+
 export const NodeTypes = {
   ROOT: 0,
   ELEMENT: 1,
@@ -32,14 +40,14 @@ export const NodeTypes = {
   JS_IF_STATEMENT: 22,
   JS_ASSIGNMENT_EXPRESSION: 23,
   JS_SEQUENCE_EXPRESSION: 24,
-  JS_RETURN_STATEMENT: 25,
-};
+  JS_RETURN_STATEMENT: 25
+}
 
 export const locStub /* SourceLocation*/ = {
-  soure: "",
+  soure: '',
   start: { line: 1, column: 1, offset: 0 },
-  end: { line: 1, column: 1, offset: 0 },
-};
+  end: { line: 1, column: 1, offset: 0 }
+}
 
 export function createRoot(
   children = [] /* TemplateChildNode[] */,
@@ -56,6 +64,6 @@ export function createRoot(
     imports: [],
     cached: 0,
     temps: 0,
-    codegenNode: undefined,
-  };
+    codegenNode: undefined
+  }
 }

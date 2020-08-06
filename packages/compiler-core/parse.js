@@ -1,9 +1,9 @@
 // import { NO } from "../util.js";
-import { createRoot, NodeTypes, Namespaces } from './ast.js'
+import { createRoot, NodeTypes, Namespaces, ElementTypes } from './ast.js'
 import { advancePositionWithMutation } from './utils.js'
 import { ErrorCodes, createCompilerError, defaultOnError } from './error.js'
 
-const NO = 0
+const NO = () => false
 const TagType = {
   Start: 0,
   End: 1
@@ -110,7 +110,7 @@ function parseChildren(
             emitError(context, ErrorCodes.MISSING_END_TAG_NAME, 2)
             // 过滤掉 </> 这三个字符串，offset>>3 退出本次循环继续解析
             advanceBy(context, 3)
-            continue
+            continu
           } else if (/[a-z]/i.test(s[2])) {
             // 这里都出错了，为啥后面还有个 parseTag ???
             emitError(context, ErrorCodes.X_INVALID_END_TAG)
@@ -126,7 +126,7 @@ function parseChildren(
           }
         } else if (/[a-z]/i.test(s[1])) {
           // 解析起始标签，即这里才是标签最开始的位置。
-          // node = parseElement(context, ancestors);
+          node = parseElement(context, ancestors)
         } else if ([s[1] === '?']) {
           // <? 开始的
           emitError(
@@ -161,6 +161,59 @@ function parseChildren(
   let removedWhitespace = false
 
   return removedWhitespace ? nodes.filter(Boolean) : nodes
+}
+
+function parseElement(context, ancestors) {
+  // assert context.source 是以 <[a-z] 开头的
+
+  const wasInPre = context.inPre
+  const wasInVPre = context.inVPre
+  // 取 ancestors 最后一个节点 node
+  const parent = last(ancestors)
+  const element = parseTag(context, TagType.Start, parent)
+
+  // pre or v-pre
+  const isPreBoundary = context.inPre && !wasInVPre
+  const isVPreBoundary = context.inVPre && !wasInVPre
+
+  // 自闭合的到这里就可以结束了
+  if (element.isSelfClosing || context.options.isVoidTag?.(element.tag)) {
+    return element
+  }
+
+  // 子元素 children
+  ancestors.push(element)
+  const mode = context.options.getTextMode(element, parent)
+  const children = parseChildren(context, mode, ancestors)
+  // 这里为什么要 pop 掉？？？
+  ancestors.pop()
+  element.children = children
+  console.info(element, 'after')
+
+  // 结束标签？ <span></span> 这种类型？
+  if (startsWithEndTagOpen(context.source, element.tag)) {
+    parseTag(context, TagType.End, parent)
+  } else {
+    emitError(context, ErrorCodes.X_MISSING_END_TAG, 0, element.loc.start)
+    if (context.source.length === 0 && element.tag.toLowerCase() === 'script') {
+      const first = children[0]
+      if (first && first.loc.source.startsWith('<!--')) {
+        emitError(context, ErrorCodes.EOF_IN_SCRIPT_HTML_COMMENT_LIKE_TEXT)
+      }
+    }
+  }
+
+  element.loc = getSelection(context, element.loc.start)
+
+  if (isPreBoundary) {
+    context.inPre = false
+  }
+
+  if (isVPreBoundary) {
+    context.inVPre = false
+  }
+
+  return element
 }
 
 function parseText(context, mode) {
@@ -221,6 +274,51 @@ function parseTag(context, type, parent) {
   // 正好过滤 </div 5个字符
   const cursor = getCursor(context)
   const currSource = context.source
+
+  // TODO-1 解析标签元素的属性
+
+  // TODO-2 in pre ...
+
+  // TODO-3 v-pre 指令
+
+  // TODO-3 <div/> 自闭标签
+  let isSelfClosing = false
+  if (context.source.length === 0) {
+    emitError(context, ErrorCodes.EOF_IN_TAG)
+  } else {
+    // some <div> ... </div> 到这里的 source = > ... </div>
+    // 所以可以检测是不是以 /> 开头的
+    isSelfClosing = context.source.startsWith('/>')
+    if (type === TagType.End && isSelfClosing) {
+      emitError(context, ErrorCodes.END_TAG_WITH_TRAILING_SOLIDUS)
+    }
+    // 如果是自闭合指针移动两位(/>)，否则只移动一位(>)
+    // 到这里 source = ... </div>
+    advanceBy(context, isSelfClosing ? 2 : 1)
+  }
+
+  let tagType = ElementTypes.ELEMENT
+  const options = context.options
+  // 不是 v-pre，且不是自定义组件，这个 if 目的是为了检测并改变
+  // tagType 标签类型
+  // TODO-4 检测 tagType
+
+  return {
+    type: NodeTypes.ELEMENT,
+    ns,
+    tag,
+    tagType,
+    props: [], // TODO
+    isSelfClosing: false, // TODO
+    children: [],
+    loc: getSelection(context, start),
+    codegenNode: undefined
+  }
+}
+
+// TODO
+function parseAttributes(context, type) {
+  return []
 }
 
 function parseInterpolation(context, mode) {
