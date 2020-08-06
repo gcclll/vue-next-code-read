@@ -16,6 +16,6 @@
     "compiler": "npx babel-node --inspect --presets @babel/preset-env ./packages/compiler-core/test.js"
   },
   "dependencies": {
-    "core-js": "3"
+    "core-js": "2"
   }
 }
