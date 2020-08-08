@@ -143,7 +143,196 @@ describe('compiler: parse', () => {
           end: { offset: 5, line: 1, column: 6 },
           source: 'a < b'
         }
-      }) // lonly "<" don\'t separate nodes
+      })
+    }) // lonly "<" don\'t separate nodes
+    test('lonly "{{" don\'t separate nodes', () => {
+      const ast = baseParse('a {{ b', {
+        onError: (error) => {
+          if (error.code !== ErrorCodes.X_MISSING_INTERPOLATION_END) {
+            throw error
+          }
+        }
+      })
+      const text = ast.children[0]
+
+      expect(text).toStrictEqual({
+        type: NodeTypes.TEXT,
+        content: 'a {{ b',
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 6, line: 1, column: 7 },
+          source: 'a {{ b'
+        }
+      })
+    }) // lonly "{{" don\'t separate nodes
+  })
+  describe('Interpolation', () => {
+    test('simple interpolation', () => {
+      const ast = baseParse('{{message}}')
+      const interpolation = ast.children[0]
+
+      expect(interpolation).toStrictEqual({
+        type: NodeTypes.INTERPOLATION,
+        content: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: `message`,
+          isStatic: false,
+          isConstant: false,
+          loc: {
+            start: { offset: 2, line: 1, column: 3 },
+            end: { offset: 9, line: 1, column: 10 },
+            source: `message`
+          }
+        },
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 11, line: 1, column: 12 },
+          source: '{{message}}'
+        }
+      })
+    }) // simple interpolation
+
+    test('it can have tag-like notation', () => {
+      const ast = baseParse('{{ a<b }}')
+      const interpolation = ast.children[0]
+
+      expect(interpolation).toStrictEqual({
+        type: NodeTypes.INTERPOLATION,
+        content: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: `a<b`,
+          isStatic: false,
+          isConstant: false,
+          loc: {
+            start: { offset: 3, line: 1, column: 4 },
+            end: { offset: 6, line: 1, column: 7 },
+            source: 'a<b'
+          }
+        },
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 9, line: 1, column: 10 },
+          source: '{{ a<b }}'
+        }
+      })
+    }) // it can have tag-like notation
+
+    test('it can have tag-like notation (2)', () => {
+      const ast = baseParse('{{ a<b }}{{ c>d }}')
+      const interpolation1 = ast.children[0]
+      const interpolation2 = ast.children[1]
+
+      expect(interpolation1).toStrictEqual({
+        type: NodeTypes.INTERPOLATION,
+        content: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: `a<b`,
+          isStatic: false,
+          isConstant: false,
+          loc: {
+            start: { offset: 3, line: 1, column: 4 },
+            end: { offset: 6, line: 1, column: 7 },
+            source: 'a<b'
+          }
+        },
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 9, line: 1, column: 10 },
+          source: '{{ a<b }}'
+        }
+      })
+
+      expect(interpolation2).toStrictEqual({
+        type: NodeTypes.INTERPOLATION,
+        content: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          isStatic: false,
+          isConstant: false,
+          content: 'c>d',
+          loc: {
+            start: { offset: 12, line: 1, column: 13 },
+            end: { offset: 15, line: 1, column: 16 },
+            source: 'c>d'
+          }
+        },
+        loc: {
+          start: { offset: 9, line: 1, column: 10 },
+          end: { offset: 18, line: 1, column: 19 },
+          source: '{{ c>d }}'
+        }
+      })
+    }) // it can have tag-like notation (2)
+
+    test('it can have tag-like notation (3)', () => {
+      const ast = baseParse('<div>{{ "</div>" }}</div>')
+      const element = ast.children[0]
+      const interpolation = element.children[0]
+
+      expect(interpolation).toStrictEqual({
+        type: NodeTypes.INTERPOLATION,
+        content: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          isStatic: false,
+          // The `isConstant` is the default value and will be determined in `transformExpression`.
+          isConstant: false,
+          content: '"</div>"',
+          loc: {
+            start: { offset: 8, line: 1, column: 9 },
+            end: { offset: 16, line: 1, column: 17 },
+            source: '"</div>"'
+          }
+        },
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 19, line: 1, column: 20 },
+          source: '{{ "</div>" }}'
+        }
+      })
+    }) // it can have tag-like notation (3)
+
+    test('custom delimiters', () => {
+      const ast = baseParse('<p>{msg}</p>', {
+        delimiters: ['{', '}']
+      })
+      const element = ast.children[0]
+      const interpolation = element.children[0]
+
+      expect(interpolation).toStrictEqual({
+        type: NodeTypes.INTERPOLATION,
+        content: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: `msg`,
+          isStatic: false,
+          isConstant: false,
+          loc: {
+            start: { offset: 4, line: 1, column: 5 },
+            end: { offset: 7, line: 1, column: 8 },
+            source: 'msg'
+          }
+        },
+        loc: {
+          start: { offset: 3, line: 1, column: 4 },
+          end: { offset: 8, line: 1, column: 9 },
+          source: '{msg}'
+        }
+      })
+    }) // custom delimiters
+  })
+
+  describe('Comment', () => {
+    test('empty comment', () => {
+      const ast = baseParse('<!---->')
+      const comment = ast.children[0]
+
+      expect(comment).toStrictEqual({
+        type: NodeTypes.COMMENT,
+        content: '',
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 7, line: 1, column: 8 },
+          source: '<!---->'
+        }
+      })
     })
   })
 })
