@@ -32,6 +32,14 @@ export function advancePositionWithMutation(
   return pos
 }
 
+export function advancePositionWithClone(
+  pos,
+  source,
+  numberOfCharacters = source.length
+) {
+  return advancePositionWithMutation({ ...pos }, source, numberOfCharacters)
+}
+
 // hyphenate 驼峰转 -
 export const isBuiltInType = (tag, expected) =>
   tag === expected || tag === hyphenate(expected)

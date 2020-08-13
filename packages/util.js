@@ -1,7 +1,7 @@
 // Make a map and return a function for checking if a key
 // is in that map.
 
-const cacheStringFunction = (str) => {
+const cacheStringFunction = (fn) => {
   const cache = Object.create(null)
   return (str) => {
     const hit = cache[str]
@@ -46,6 +46,7 @@ export const isObservableType = /*#__PURE__*/ makeMap(
   'Object,Array,Map,Set,WeakMap,WeakSet'
 )
 
+const hyphenateRE = /\B[A-Z]/g
 export const hyphenate = cacheStringFunction((str) => {
   return str.replace(hyphenateRE, '-$1').toLowerCase()
 })

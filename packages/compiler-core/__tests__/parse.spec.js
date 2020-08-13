@@ -475,5 +475,14 @@ describe('compiler: parse', () => {
         }
       })
     }) // void element
+
+    test('template element with directives', () => {
+      const ast = baseParse('<template v-if="ok"></template>')
+      const element = ast.children[0]
+      expect(element).toMatchObject({
+        type: NodeTypes.ELEMENT,
+        tagType: ElementTypes.TEMPLATE
+      })
+    }) // template element with directives
   }) // Element
 })

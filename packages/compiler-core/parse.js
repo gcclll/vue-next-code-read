@@ -1,12 +1,20 @@
 import { createRoot, NodeTypes, Namespaces, ElementTypes } from './ast.js'
-import { advancePositionWithMutation, __DEV__ } from './utils.js'
+import {
+  advancePositionWithMutation,
+  advancePositionWithClone,
+  __DEV__,
+  isCoreComponent
+} from './utils.js'
 import { ErrorCodes, createCompilerError, defaultOnError } from './error.js'
+import { makeMap } from '../util.js'
 
 const NO = () => false
 const TagType = {
   Start: 0,
   End: 1
 }
+
+const isSpecialTemplateDirective = makeMap(`if,else,else-if,for,slot`)
 
 const decodeRE = /&(gt|lt|amp|apos|quot);/g
 const decodeMap = {
@@ -341,13 +349,14 @@ function parseTag(context, type, parent) {
   const cursor = getCursor(context)
   const currSource = context.source
 
-  // TODO-1 解析标签元素的属性
+  // 解析标签元素的属性
+  let props = parseAttributes(context, type)
 
   // TODO-2 in pre ...
 
-  // TODO-3 v-pre 指令
+  // v-pre 指令检测，解析属性
 
-  // TODO-3 <div/> 自闭标签
+  // <div/> 自闭标签
   let isSelfClosing = false
   if (context.source.length === 0) {
     emitError(context, ErrorCodes.EOF_IN_TAG)
@@ -368,13 +377,47 @@ function parseTag(context, type, parent) {
   // 不是 v-pre，且不是自定义组件，这个 if 目的是为了检测并改变
   // tagType 标签类型
   // TODO-4 检测 tagType
+  if (!context.inVPre && !options.isCustomElement(tag)) {
+    // 是否有 is 指令？
+    const hasVIs = props.some(
+      (p) => p.type === NodeTypes.DIRECTIVE && p.name === 'is'
+    )
+
+    if (options.isNativeTag && !hasVIs) {
+      // 没有 is 指令，且不是原生标签，那就是自定义的组件了
+      if (!options.isNativeTag(tag)) tagType = ElementTypes.COMPONENT
+    } else if (
+      hasVIs ||
+      isCoreComponent(tag) ||
+      options.isBuiltInComponent?.(tag) ||
+      /^[A-Z]/.test(tag) ||
+      tag === 'component'
+    ) {
+      // 有 is 指令 || vue 核心组件(keep-alive...) || 内置组件
+      // || 标签名大写开头
+      tagType === ElementTypes.COMPONENT
+    }
+
+    if (tag === 'slot') {
+      tagType === ElementTypes.SLOT
+    } else if (
+      tag === 'template' &&
+      props.some(
+        (p) =>
+          p.type === NodeTypes.DIRECTIVE && isSpecialTemplateDirective(p.name)
+      )
+    ) {
+      // 是模板的前提是有指令，并且是特殊的模板指令(if, else, else-if, slot, for)
+      tagType = ElementTypes.TEMPLATE
+    }
+  }
 
   const val = {
     type: NodeTypes.ELEMENT,
     ns,
     tag,
     tagType,
-    props: [], // TODO
+    props, // TODO
     isSelfClosing,
     children: [],
     loc: getSelection(context, start),
@@ -383,9 +426,232 @@ function parseTag(context, type, parent) {
   return val
 }
 
-// TODO
+// 解析标签所有属性
 function parseAttributes(context, type) {
-  return []
+  const props = []
+  const attributeNames = new Set()
+  while (
+    context.source.length > 0 &&
+    !context.source.startsWith('>') &&
+    !context.source.startsWith('/>')
+  ) {
+    // 非法属性， <div /v-if="ok"></div>??
+    if (context.source.startsWith('/')) {
+      emitError(context, ErrorCodes.UNEXPECTED_SOLIDUS_IN_TAG)
+      advanceBy(context, 1)
+      advanceSpaces(context)
+      continue
+    }
+
+    // </div> 结束标签，以属性结束的标签?
+    if (type === TagType.End) {
+      emitError(context, ErrorCodes.END_TAG_WITH_ATTRIBUTES)
+    }
+
+    // 逐个解析属性
+    const attr = parseAttribute(context, attributeNames)
+    if (type === TagType.Start) {
+      props.push(attr)
+    }
+
+    if (/^[^\t\r\n\f />]/.test(context.source)) {
+      emitError(context, ErrorCodes.MISSING_WHITESPACE_BETWEEN_ATTRIBUTES)
+    }
+
+    advanceSpaces(context)
+  }
+
+  return props
+}
+
+function parseAttribute(context, nameSet) {
+  const start = getCursor(context)
+  const match = /^[^\t\r\n\f />][^\t\r\n\f />=]*/.exec(context.source)
+  const name = match[0]
+
+  if (nameSet.has(name)) {
+    // 重复属性名
+    emitError(context, ErrorCodes.DUPLICATE_ATTRIBUTE)
+  }
+  nameSet.add(name)
+
+  if (name[0] === '=') {
+    // =name=value ?
+    emitError(context, ErrorCodes.UNEXPECTED_EQUALS_SIGN_BEFORE_ATTRIBUTE_NAME)
+  }
+
+  {
+    const pattern = /["'<]/g
+    let m
+    while ((m = pattern.exec(name))) {
+      // 不合法的属性名
+      emitError(
+        context,
+        ErrorCodes.UNEXPECTED_CHARACTER_IN_ATTRIBUTE_NAME,
+        m.index
+      )
+    }
+  }
+
+  // 移动指针
+  advanceBy(context, name.length)
+
+  // type: { content, isQuoted, loc }
+  let value
+
+  // 去空格解析属性值
+  if (/^[\t\r\n\f ]*=/.test(context.source)) {
+    // 属性名与 = 之间存在空格的情况，去掉空格
+    advanceSpaces(context)
+    advanceBy(context, 1)
+    advanceSpaces(context)
+    // 去掉空格之后解析属性值
+    value = parseAttributeValue(context)
+    if (!value) {
+      emitError(context, ErrorCodes.MISSING_ATTRIBUTE_VALUE)
+    }
+  }
+
+  const loc = getSelection(context, start)
+
+  // v-dir 或 缩写
+  if (!context.inVPre && /^(v-|:|@|#)/.test(name)) {
+    // ?: 非捕获组
+    // 1. (?:^v-([a-z0-9]+))? -> 匹配 v-dir 指令，非贪婪匹配，捕获指令名
+    //   称([a-z0=9]+)
+    // 2. (?:(?::|^@|^#)([^\.]+))? -> 匹配 :,@,# 后面的变量名，如：v-bind:name
+    //   或缩写 :varname, @eventname, #slotname 后面的名称
+    // 3. (.+)?$ 匹配任意字符
+    const match = /(?:^v-([a-z0-9]+))?(?:(?::|^@|^#)([^\.]+))?(.+)?$/i.exec(
+      name
+    )
+
+    let arg
+
+    // ([a-z0-9]+), ([^\.]+)
+    if (match[2]) {
+      const startOffset = name.indexOf(match[2])
+      const loc = getSelection(
+        context,
+        getNewPosition(context, start, startOffset),
+        getNewPosition(context, start, startOffset + match[2].length)
+      )
+
+      let content = match[2]
+      let isStatic = true // 静态属性名
+
+      // 动态属性名解析
+      if (content.startsWith('[')) {
+        isStatic = false
+
+        if (!content.endsWith(']')) {
+          // 如果是动态属性名，必须是 [varName] 形式
+          emitError(
+            context,
+            ErrorCodes.X_MISSING_DYNAMIC_DIRECTIVE_ARGUMENT_END
+          )
+        }
+
+        content = content.substr(1, content.length - 2)
+      }
+
+      arg = {
+        type: NodeTypes.SIMPLE_EXPRESSION,
+        content,
+        isStatic,
+        isConstant: isStatic,
+        loc
+      }
+    }
+
+    // 属性是否被引号包起来
+    if (value && value.isQuoted) {
+      const valueLoc = value.loc
+      valueLoc.start.offset++
+      valueLoc.start.column++
+      valueLoc.end = advancePositionWithClone(valueLoc.start, value.content)
+      // 取引号内的所有内容
+      valueLoc.source = valueLoc.source.slice(1, -1)
+    }
+
+    return {
+      type: NodeTypes.DIRECTIVE,
+      // : -> v-bind, @ -> v-on, # -> v-slot 的缩写
+      name:
+        match[1] ||
+        (name.startsWith(':') ? 'bind' : name.startsWith('@') ? 'on' : 'slot'),
+      exp: value && {
+        type: NodeTypes.SIMPLE_EXPRESSION,
+        content: value.content,
+        isStatic: false,
+        isConstant: false,
+        loc: value.loc
+      },
+      arg,
+      // 修饰符处理, v-bind.m1.m2 -> .m1.m2 -> ['m1', 'm2']
+      modifiers: match[3] ? match[3].substr[1].split('.') : [],
+      loc
+    }
+  }
+
+  return {
+    type: NodeTypes.ATTRIBUTE,
+    name,
+    value: value && {
+      type: NodeTypes.TEXT,
+      content: value.content,
+      loc: value.loc
+    },
+    loc
+  }
+}
+
+function parseAttributeValue(context) {
+  // 保存模板字符串指针起点位置
+  const start = getCursor(context)
+
+  let content
+
+  const quote = context.source[0]
+  const isQuoted = quote === `"` || quote === `'`
+  if (isQuoted) {
+    // 有引号
+    advanceBy(context, 1)
+    const endIndex = context.source.indexOf(quote)
+    // 没有结束引号??? 整个 source 当做文本数据处理???
+    if (endIndex === -1) {
+      content = parseTextData(
+        context,
+        context.source.length,
+        TextModes.ATTRIBUTE_VALUE
+      )
+    } else {
+      content = parseTextData(context, endIndex, TextModes.ATTRIBUTE_VALUE)
+      advanceBy(context, 1)
+    }
+  } else {
+    // 没有引号
+    const match = /^[^\t\r\n\f >]+/.exec(context.source)
+    if (!match) {
+      // 无属性值
+      return undefined
+    }
+
+    const unexpectedChars = /["'<=`]/g
+    let m
+    while ((m = unexpectedChars.exec(match[0]))) {
+      // 无引号值中非法字符检测
+      emitError(
+        context,
+        ErrorCodes.UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE
+      )
+    }
+
+    // 解析文本数据
+    content = parseTextData(context, match[0].length, TextModes.ATTRIBUTE_VALUE)
+  }
+
+  return { content, isQuoted, loc: getSelection(context, start) }
 }
 
 function parseInterpolation(context, mode) {

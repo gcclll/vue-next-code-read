@@ -8,10 +8,11 @@
       import { baseParse } from './parse.js'
       import { ErrorCodes } from './error.js'
 
-      const ast = baseParse('<img>after', {
+      const ast = baseParse('<template v-if="ok"></template>', {
         isVoidTag: (tag) => tag === 'img'
       })
-      console.log(ast)
+
+      console.log(ast, JSON.stringify(ast))
     </script>
   </body>
 </html>
