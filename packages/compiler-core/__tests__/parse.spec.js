@@ -451,5 +451,29 @@ describe('compiler: parse', () => {
         }
       })
     }) // self closing
+
+    test('void element', () => {
+      const ast = baseParse('<img>after', {
+        isVoidTag: (tag) => tag === 'img'
+      })
+      const element = ast.children[0]
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: 'img',
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 5, line: 1, column: 6 },
+          source: '<img>'
+        }
+      })
+    }) // void element
   }) // Element
 })

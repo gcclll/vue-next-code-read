@@ -8,7 +8,9 @@
       import { baseParse } from './parse.js'
       import { ErrorCodes } from './error.js'
 
-      const ast = baseParse('<div/>after')
+      const ast = baseParse('<img>after', {
+        isVoidTag: (tag) => tag === 'img'
+      })
       console.log(ast)
     </script>
   </body>
