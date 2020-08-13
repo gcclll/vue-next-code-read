@@ -1,5 +1,5 @@
 import { baseParse } from '../parse.js'
-import { NodeTypes } from '../ast.js'
+import { NodeTypes, Namespaces, ElementTypes } from '../ast.js'
 import { ErrorCodes } from '../error.js'
 
 describe('compiler: parse', () => {
@@ -165,7 +165,8 @@ describe('compiler: parse', () => {
         }
       })
     }) // lonly "{{" don\'t separate nodes
-  })
+  }) // Text
+
   describe('Interpolation', () => {
     test('simple interpolation', () => {
       const ast = baseParse('{{message}}')
@@ -317,7 +318,7 @@ describe('compiler: parse', () => {
         }
       })
     }) // custom delimiters
-  })
+  }) // Interpolation
 
   describe('Comment', () => {
     test('empty comment', () => {
@@ -374,5 +375,81 @@ describe('compiler: parse', () => {
         }
       })
     }) // two comments
-  })
+  }) // Comment
+
+  describe('Element', () => {
+    test('simple div', () => {
+      const ast = baseParse('<div>hello</div>')
+      const element = ast.children[0]
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: 'div',
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [],
+        isSelfClosing: false,
+        children: [
+          {
+            type: NodeTypes.TEXT,
+            content: 'hello',
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 10, line: 1, column: 11 },
+              source: 'hello'
+            }
+          }
+        ],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 16, line: 1, column: 17 },
+          source: '<div>hello</div>'
+        }
+      })
+    }) // simple div
+
+    test('empty div', () => {
+      const ast = baseParse('<div></div>')
+      const element = ast.children[0]
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: 'div',
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [],
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 11, line: 1, column: 12 },
+          source: '<div></div>'
+        }
+      })
+    }) // empty div
+
+    test('self closing', () => {
+      const ast = baseParse('<div/>after')
+      const element = ast.children[0]
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: 'div',
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [],
+
+        isSelfClosing: true,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 6, line: 1, column: 7 },
+          source: '<div/>'
+        }
+      })
+    }) // self closing
+  }) // Element
 })

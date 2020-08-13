@@ -152,7 +152,6 @@ function parseChildren(
       node = parseText(context, mode)
     }
 
-    console.log(node, '11')
     if (Array.isArray(node)) {
       for (let i = 0; i < node.length; i++) {
         pushNode(nodes, node[i])
@@ -162,8 +161,8 @@ function parseChildren(
     }
   }
 
-  console.log(nodes, 'node')
   let removedWhitespace = false
+  // TODO 空格管理，为了更高效的输出
 
   return removedWhitespace ? nodes.filter(Boolean) : nodes
 }
@@ -232,6 +231,9 @@ function parseElement(context, ancestors) {
   const wasInVPre = context.inVPre
   // 取 ancestors 最后一个节点 node
   const parent = last(ancestors)
+  // <div>hello</div> 经过 parseTag 之后
+  // context.source = 'hello</div>'
+  // element.loc.source = '<div>'
   const element = parseTag(context, TagType.Start, parent)
 
   // pre or v-pre
@@ -251,6 +253,7 @@ function parseElement(context, ancestors) {
   ancestors.pop()
   element.children = children
 
+  // 如果是自闭标签，不应该走到这里，即经过 parseTag 之后 isSelfClosing = true
   // 结束标签？ <span></span> 这种类型？
   if (startsWithEndTagOpen(context.source, element.tag)) {
     parseTag(context, TagType.End, parent)
@@ -322,7 +325,9 @@ function parseTextData(context, length, mode) {
 function parseTag(context, type, parent) {
   // 获取当前解析的起始位置，此时值应该是 some text 的长度
   const start = getCursor(context)
-  // 匹配 </div 过滤掉空格字符，但是为什么要把 > 给忽略掉???
+  // 匹配 <div 或 </div 过滤掉空格字符，但是为什么要把 > 给忽略掉???
+  // 其实不是忽略掉 > 而是因为如果是 <div 开头，那么后面有可能是 < 或
+  // /> 后面需要处理闭合和非闭合问题
   const match = /^<\/?([a-z][^\t\r\n\f />]*)/i.exec(context.source)
   const tag = match[1]
   const ns = context.options.getNamespace(tag, parent)
@@ -364,17 +369,18 @@ function parseTag(context, type, parent) {
   // tagType 标签类型
   // TODO-4 检测 tagType
 
-  return {
+  const val = {
     type: NodeTypes.ELEMENT,
     ns,
     tag,
     tagType,
     props: [], // TODO
-    isSelfClosing: false, // TODO
+    isSelfClosing,
     children: [],
     loc: getSelection(context, start),
     codegenNode: undefined
   }
+  return val
 }
 
 // TODO
