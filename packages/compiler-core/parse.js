@@ -505,7 +505,6 @@ function parseAttribute(context, nameSet) {
     advanceSpaces(context)
     advanceBy(context, 1)
     advanceSpaces(context)
-    console.log(context, '000')
     // 去掉空格之后解析属性值
     value = parseAttributeValue(context)
     if (!value) {
