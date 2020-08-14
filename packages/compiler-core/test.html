@@ -8,7 +8,7 @@
       import { baseParse } from './parse.js'
       import { ErrorCodes } from './error.js'
 
-      const ast = baseParse('<template v-if="ok"></template>', {
+      const ast = baseParse('<div v-bind:keyup.enter.prevent="ok"></div>', {
         isVoidTag: (tag) => tag === 'img'
       })
 

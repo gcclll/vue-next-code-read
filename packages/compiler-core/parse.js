@@ -505,6 +505,7 @@ function parseAttribute(context, nameSet) {
     advanceSpaces(context)
     advanceBy(context, 1)
     advanceSpaces(context)
+    console.log(context, '000')
     // 去掉空格之后解析属性值
     value = parseAttributeValue(context)
     if (!value) {
@@ -589,7 +590,7 @@ function parseAttribute(context, nameSet) {
       },
       arg,
       // 修饰符处理, v-bind.m1.m2 -> .m1.m2 -> ['m1', 'm2']
-      modifiers: match[3] ? match[3].substr[1].split('.') : [],
+      modifiers: match[3] ? match[3].substr(1).split('.') : [],
       loc
     }
   }
@@ -802,6 +803,14 @@ function advanceBy(context, numberOfCharacters) {
   const { source } = context
   advancePositionWithMutation(context, source, numberOfCharacters)
   context.source = source.slice(numberOfCharacters)
+}
+
+function getNewPosition(context, start, numberOfCharacters) {
+  return advancePositionWithClone(
+    start,
+    context.originalSource.slice(start.offset, numberOfCharacters),
+    numberOfCharacters
+  )
 }
 
 function emitError(context, code, offset, loc = getCursor(context)) {
