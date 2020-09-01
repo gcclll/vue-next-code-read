@@ -5,14 +5,12 @@
   </head>
   <body>
     <script type="module">
-      import { baseParse } from './parse.js'
-      import { ErrorCodes } from './error.js'
+      import { baseParse } from "./parse.js";
+      import { ErrorCodes } from "./error.js";
 
-      const ast = baseParse('<div v-bind:keyup.enter.prevent="ok"></div>', {
-        isVoidTag: (tag) => tag === 'img'
-      })
+      const ast = baseParse("<div></div><comp></comp><Comp></Comp>");
 
-      console.log(ast, JSON.stringify(ast))
+      console.log(ast, JSON.stringify(ast));
     </script>
   </body>
 </html>
