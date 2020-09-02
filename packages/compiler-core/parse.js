@@ -107,10 +107,21 @@ function parseChildren(
         if (s.length === 1) {
           emitError(context, ErrorCodes.EOF_BEFORE_TAG_NAME, 1);
         } else if (s[1] === "!") {
-          // TODO 注释处理，<!-- ...
           if (s.startsWith("<!--")) {
             // 普通的 html 注释
             node = parseComment(context);
+          } else if (s.startsWith("<!DOCTYPE")) {
+            node = parseBogusComment(context);
+          } else if (s.startsWith("<![CDATA[")) {
+            if (ns !== Namespaces.HTML) {
+              node = parseCDATA(context, ancestors);
+            } else {
+              emitError(context, ErrorCodes.CDATA_IN_HTML_CONTENT);
+              node = parseBogusComment(context);
+            }
+          } else {
+            emitError(context, ErrorCodes.INCORRECTLY_OPENED_COMMENT);
+            node = parseBogusComment(context);
           }
         } else if (s[1] === "/") {
           // </...
@@ -133,7 +144,7 @@ function parseChildren(
               ErrorCodes.INVALID_FIRST_CHARACTER_OF_TAG_NAME,
               2
             );
-            // node = parseBogusComment(context)
+            node = parseBogusComment(context);
           }
         } else if (/[a-z]/i.test(s[1])) {
           // 解析起始标签，即这里才是标签最开始的位置。
@@ -145,7 +156,7 @@ function parseChildren(
             ErrorCodes.UNEXPECTED_QUESTION_MARK_INSTEAD_OF_TAG_NAME,
             1
           );
-          // node = parseBogusComment(context)
+          node = parseBogusComment(context);
         } else {
           // 其他情况都视为非法
           emitError(context, ErrorCodes.INVALID_FIRST_CHARACTER_OF_TAG_NAME, 1);
@@ -766,6 +777,43 @@ function parseInterpolation(context, mode) {
       content,
       loc: getSelection(context, innerStart, innerEnd),
     },
+    loc: getSelection(context, start),
+  };
+}
+
+// <![CDATA[...
+function parseCDATA(context, ancestors) {
+  advanceBy(context, 9); // `<![CDATA[`.length = 9
+  const nodes = parseChildren(context, TextModes.CDATA, ancestors);
+  if (context.source.length === 0) {
+    emitError(context, ErrorCodes.EOF_IN_CDATA);
+  } else {
+    advanceBy(context, 3);
+  }
+  return nodes;
+}
+
+function parseBogusComment(context) {
+  const start = getCursor(context);
+
+  const contentStart = context.source[1] === "?" ? 1 : 2;
+  let content;
+
+  const closeIndex = content.source.indexOf(">");
+
+  if (closeIndex === -1) {
+    // 没有结束索引，后面所有的都将成为注释
+    content = context.source.slice(contentStart);
+    advanceBy(context, context.source.length);
+  } else {
+    content = context.source.slice(contentStart, closeIndex);
+    // 定位到注释后面的字符
+    advanceBy(context, closeIndex + 1);
+  }
+
+  return {
+    type: NodeTypes.COMMENT,
+    content,
     loc: getSelection(context, start),
   };
 }
