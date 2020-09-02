@@ -588,5 +588,744 @@ describe("compiler: parse", () => {
         tagType: ElementTypes.COMPONENT,
       });
     }); // v-is without `isNativeTag`
+
+    test("custom element", () => {
+      const ast = baseParse("<div></div><comp></comp>", {
+        isNativeTag: (tag) => tag === "div",
+        isCustomElement: (tag) => tag === "comp",
+      });
+
+      expect(ast.children[0]).toMatchObject({
+        type: NodeTypes.ELEMENT,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+      });
+
+      expect(ast.children[1]).toMatchObject({
+        type: NodeTypes.ELEMENT,
+        tag: "comp",
+        tagType: ElementTypes.ELEMENT,
+      });
+    }); // custom element
+
+    test("attribute with no value", () => {
+      const ast = baseParse("<div id></div>");
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: undefined,
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 7, line: 1, column: 8 },
+              source: "id",
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 14, line: 1, column: 15 },
+          source: "<div id></div>",
+        },
+      });
+    }); // attribute with no value
+
+    test("attribute with empty value, double quote", () => {
+      const ast = baseParse('<div id=""></div>');
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: {
+              type: NodeTypes.TEXT,
+              content: "",
+              loc: {
+                start: { offset: 8, line: 1, column: 9 },
+                end: { offset: 10, line: 1, column: 11 },
+                source: '""',
+              },
+            },
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 10, line: 1, column: 11 },
+              source: 'id=""',
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 17, line: 1, column: 18 },
+          source: '<div id=""></div>',
+        },
+      });
+    }); // attribute with empty value, double quote
+
+    test("attribute with empty value, single quote", () => {
+      const ast = baseParse("<div id=''></div>");
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: {
+              type: NodeTypes.TEXT,
+              content: "",
+              loc: {
+                start: { offset: 8, line: 1, column: 9 },
+                end: { offset: 10, line: 1, column: 11 },
+                source: "''",
+              },
+            },
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 10, line: 1, column: 11 },
+              source: "id=''",
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 17, line: 1, column: 18 },
+          source: "<div id=''></div>",
+        },
+      });
+    }); // attribute with empty value, single quote
+
+    test("attribute with value, double quote", () => {
+      const ast = baseParse('<div id=">\'"></div>');
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: {
+              type: NodeTypes.TEXT,
+              content: ">'",
+              loc: {
+                start: { offset: 8, line: 1, column: 9 },
+                end: { offset: 12, line: 1, column: 13 },
+                source: '">\'"',
+              },
+            },
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 12, line: 1, column: 13 },
+              source: 'id=">\'"',
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 19, line: 1, column: 20 },
+          source: '<div id=">\'"></div>',
+        },
+      });
+    }); // value with double quote
+
+    test("attribute with value, single quote", () => {
+      const ast = baseParse("<div id='>\"'></div>");
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: {
+              type: NodeTypes.TEXT,
+              content: '>"',
+              loc: {
+                start: { offset: 8, line: 1, column: 9 },
+                end: { offset: 12, line: 1, column: 13 },
+                source: "'>\"'",
+              },
+            },
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 12, line: 1, column: 13 },
+              source: "id='>\"'",
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 19, line: 1, column: 20 },
+          source: "<div id='>\"'></div>",
+        },
+      });
+    }); // value siwth single quote
+
+    test("attribute with value, unquoted", () => {
+      const ast = baseParse("<div id=a/></div>");
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: {
+              type: NodeTypes.TEXT,
+              content: "a/",
+              loc: {
+                start: { offset: 8, line: 1, column: 9 },
+                end: { offset: 10, line: 1, column: 11 },
+                source: "a/",
+              },
+            },
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 10, line: 1, column: 11 },
+              source: "id=a/",
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 17, line: 1, column: 18 },
+          source: "<div id=a/></div>",
+        },
+      });
+    }); // unquoted
+
+    test("multiple attributes", () => {
+      const ast = baseParse("<div id=a class=\"c\" inert style=''></div>");
+      const element = ast.children[0];
+
+      expect(element).toStrictEqual({
+        type: NodeTypes.ELEMENT,
+        ns: Namespaces.HTML,
+        tag: "div",
+        tagType: ElementTypes.ELEMENT,
+        codegenNode: undefined,
+        props: [
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "id",
+            value: {
+              type: NodeTypes.TEXT,
+              content: "a",
+              loc: {
+                start: { offset: 8, line: 1, column: 9 },
+                end: { offset: 9, line: 1, column: 10 },
+                source: "a",
+              },
+            },
+            loc: {
+              start: { offset: 5, line: 1, column: 6 },
+              end: { offset: 9, line: 1, column: 10 },
+              source: "id=a",
+            },
+          },
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "class",
+            value: {
+              type: NodeTypes.TEXT,
+              content: "c",
+              loc: {
+                start: { offset: 16, line: 1, column: 17 },
+                end: { offset: 19, line: 1, column: 20 },
+                source: '"c"',
+              },
+            },
+            loc: {
+              start: { offset: 10, line: 1, column: 11 },
+              end: { offset: 19, line: 1, column: 20 },
+              source: 'class="c"',
+            },
+          },
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "inert",
+            value: undefined,
+            loc: {
+              start: { offset: 20, line: 1, column: 21 },
+              end: { offset: 25, line: 1, column: 26 },
+              source: "inert",
+            },
+          },
+          {
+            type: NodeTypes.ATTRIBUTE,
+            name: "style",
+            value: {
+              type: NodeTypes.TEXT,
+              content: "",
+              loc: {
+                start: { offset: 32, line: 1, column: 33 },
+                end: { offset: 34, line: 1, column: 35 },
+                source: "''",
+              },
+            },
+            loc: {
+              start: { offset: 26, line: 1, column: 27 },
+              end: { offset: 34, line: 1, column: 35 },
+              source: "style=''",
+            },
+          },
+        ],
+
+        isSelfClosing: false,
+        children: [],
+        loc: {
+          start: { offset: 0, line: 1, column: 1 },
+          end: { offset: 41, line: 1, column: 42 },
+          source: "<div id=a class=\"c\" inert style=''></div>",
+        },
+      });
+    });
+
+    test("directive with no value", () => {
+      const ast = baseParse("<div v-if/>");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "if",
+        arg: undefined,
+        modifiers: [],
+        exp: undefined,
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 9, line: 1, column: 10 },
+          source: "v-if",
+        },
+      });
+    });
+
+    test("directive with value", () => {
+      const ast = baseParse('<div v-if="a"/>');
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "if",
+        arg: undefined,
+        modifiers: [],
+        exp: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "a",
+          isStatic: false,
+          isConstant: false,
+          loc: {
+            start: { offset: 11, line: 1, column: 12 },
+            end: { offset: 12, line: 1, column: 13 },
+            source: "a",
+          },
+        },
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 13, line: 1, column: 14 },
+          source: 'v-if="a"',
+        },
+      });
+    });
+
+    test("directive with argument", () => {
+      const ast = baseParse("<div v-on:click/>");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "on",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "click",
+          isStatic: true,
+          isConstant: true,
+
+          loc: {
+            source: "click",
+            start: {
+              column: 11,
+              line: 1,
+              offset: 10,
+            },
+            end: {
+              column: 16,
+              line: 1,
+              offset: 15,
+            },
+          },
+        },
+        modifiers: [],
+        exp: undefined,
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 15, line: 1, column: 16 },
+          source: "v-on:click",
+        },
+      });
+    });
+
+    test("directive with a modifier", () => {
+      const ast = baseParse("<div v-on.enter/>");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "on",
+        arg: undefined,
+        modifiers: ["enter"],
+        exp: undefined,
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 15, line: 1, column: 16 },
+          source: "v-on.enter",
+        },
+      });
+    });
+
+    test("directive with two modifiers", () => {
+      const ast = baseParse("<div v-on.enter.exact/>");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "on",
+        arg: undefined,
+        modifiers: ["enter", "exact"],
+        exp: undefined,
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 21, line: 1, column: 22 },
+          source: "v-on.enter.exact",
+        },
+      });
+    });
+
+    test("directive with argument and modifiers", () => {
+      const ast = baseParse("<div v-on:click.enter.exact/>");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "on",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "click",
+          isStatic: true,
+          isConstant: true,
+
+          loc: {
+            source: "click",
+            start: {
+              column: 11,
+              line: 1,
+              offset: 10,
+            },
+            end: {
+              column: 16,
+              line: 1,
+              offset: 15,
+            },
+          },
+        },
+        modifiers: ["enter", "exact"],
+        exp: undefined,
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 27, line: 1, column: 28 },
+          source: "v-on:click.enter.exact",
+        },
+      });
+    });
+
+    test("v-bind shorthand", () => {
+      const ast = baseParse("<div :a=b />");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "bind",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "a",
+          isStatic: true,
+          isConstant: true,
+
+          loc: {
+            source: "a",
+            start: {
+              column: 7,
+              line: 1,
+              offset: 6,
+            },
+            end: {
+              column: 8,
+              line: 1,
+              offset: 7,
+            },
+          },
+        },
+        modifiers: [],
+        exp: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "b",
+          isStatic: false,
+          isConstant: false,
+
+          loc: {
+            start: { offset: 8, line: 1, column: 9 },
+            end: { offset: 9, line: 1, column: 10 },
+            source: "b",
+          },
+        },
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 9, line: 1, column: 10 },
+          source: ":a=b",
+        },
+      });
+    });
+
+    test("v-bind shorthand with modifier", () => {
+      const ast = baseParse("<div :a.sync=b />");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "bind",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "a",
+          isStatic: true,
+          isConstant: true,
+
+          loc: {
+            source: "a",
+            start: {
+              column: 7,
+              line: 1,
+              offset: 6,
+            },
+            end: {
+              column: 8,
+              line: 1,
+              offset: 7,
+            },
+          },
+        },
+        modifiers: ["sync"],
+        exp: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "b",
+          isStatic: false,
+          isConstant: false,
+
+          loc: {
+            start: { offset: 13, line: 1, column: 14 },
+            end: { offset: 14, line: 1, column: 15 },
+            source: "b",
+          },
+        },
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 14, line: 1, column: 15 },
+          source: ":a.sync=b",
+        },
+      });
+    });
+
+    test("v-on shorthand", () => {
+      const ast = baseParse("<div @a=b />");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "on",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "a",
+          isStatic: true,
+          isConstant: true,
+
+          loc: {
+            source: "a",
+            start: {
+              column: 7,
+              line: 1,
+              offset: 6,
+            },
+            end: {
+              column: 8,
+              line: 1,
+              offset: 7,
+            },
+          },
+        },
+        modifiers: [],
+        exp: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "b",
+          isStatic: false,
+          isConstant: false,
+
+          loc: {
+            start: { offset: 8, line: 1, column: 9 },
+            end: { offset: 9, line: 1, column: 10 },
+            source: "b",
+          },
+        },
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 9, line: 1, column: 10 },
+          source: "@a=b",
+        },
+      });
+    });
+
+    test("v-on shorthand with modifier", () => {
+      const ast = baseParse("<div @a.enter=b />");
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "on",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "a",
+          isStatic: true,
+          isConstant: true,
+
+          loc: {
+            source: "a",
+            start: {
+              column: 7,
+              line: 1,
+              offset: 6,
+            },
+            end: {
+              column: 8,
+              line: 1,
+              offset: 7,
+            },
+          },
+        },
+        modifiers: ["enter"],
+        exp: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "b",
+          isStatic: false,
+          isConstant: false,
+
+          loc: {
+            start: { offset: 14, line: 1, column: 15 },
+            end: { offset: 15, line: 1, column: 16 },
+            source: "b",
+          },
+        },
+        loc: {
+          start: { offset: 5, line: 1, column: 6 },
+          end: { offset: 15, line: 1, column: 16 },
+          source: "@a.enter=b",
+        },
+      });
+    });
+
+    test("v-slot shorthand", () => {
+      const ast = baseParse('<Comp #a="{ b }" />');
+      const directive = ast.children[0].props[0];
+
+      expect(directive).toStrictEqual({
+        type: NodeTypes.DIRECTIVE,
+        name: "slot",
+        arg: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "a",
+          isStatic: true,
+          isConstant: true,
+          loc: {
+            source: "a",
+            start: {
+              column: 8,
+              line: 1,
+              offset: 7,
+            },
+            end: {
+              column: 9,
+              line: 1,
+              offset: 8,
+            },
+          },
+        },
+        modifiers: [],
+        exp: {
+          type: NodeTypes.SIMPLE_EXPRESSION,
+          content: "{ b }",
+          isStatic: false,
+          // The `isConstant` is the default value and will be determined in transformExpression
+          isConstant: false,
+          loc: {
+            start: { offset: 10, line: 1, column: 11 },
+            end: { offset: 15, line: 1, column: 16 },
+            source: "{ b }",
+          },
+        },
+        loc: {
+          start: { offset: 6, line: 1, column: 7 },
+          end: { offset: 16, line: 1, column: 17 },
+          source: '#a="{ b }"',
+        },
+      });
+    });
   }); // Element
 });

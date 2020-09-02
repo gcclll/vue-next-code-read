@@ -8,7 +8,10 @@
       import { baseParse } from "./parse.js";
       import { ErrorCodes } from "./error.js";
 
-      const ast = baseParse("<div></div><comp></comp><Comp></Comp>");
+      const ast = baseParse(
+        `<div v-pre :id="foo"><Comp/>{{ bar }}</div>\n` +
+          `<div :id="foo"><Comp/>{{ bar }}</div>`
+      );
 
       console.log(ast, JSON.stringify(ast));
     </script>
