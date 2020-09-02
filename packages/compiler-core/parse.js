@@ -88,7 +88,6 @@ function parseChildren(
   const ns = parent ? parent.ns : Namespaces.HTML;
   const nodes /*TemplateChildNode[]*/ = [];
 
-  let i = 0;
   while (!isEnd(context, mode, ancestors)) {
     // do sth
 
