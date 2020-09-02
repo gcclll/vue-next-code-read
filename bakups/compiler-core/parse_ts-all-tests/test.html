@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+  </head>
+  <body>
+    <script type="module">
+      import { baseParse, TextModes } from "./parse.js";
+      import { ErrorCodes } from "./error.js";
+      import { Namespaces } from "./ast.js";
+
+      const ast = baseParse(
+        `<textarea></div></textarea>`,
+        /* `<template><svg><![CDATA[cdata]]></svg></template>`, */
+        {
+          getNamespace: (tag, parent) => {
+            const ns = parent ? parent.ns : Namespaces.HTML;
+            if (ns === Namespaces.HTML) {
+              if (tag === "svg") {
+                return Namespaces.HTML + 1;
+              }
+            }
+            return ns;
+          },
+          getTextMode: ({ tag }) => {
+            console.log({ tag });
+            if (tag === "textarea") {
+              return TextModes.RCDATA;
+            }
+            if (tag === "script") {
+              return TextModes.RAWTEXT;
+            }
+            return TextModes.DATA;
+          },
+          onError: (err) => {
+            console.log(err);
+          },
+        }
+      );
+
+      console.log(ast, JSON.stringify(ast));
+    </script>
+  </body>
+</html>
