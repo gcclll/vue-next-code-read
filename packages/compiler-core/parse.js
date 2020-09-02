@@ -6,7 +6,7 @@ import {
   isCoreComponent,
 } from "./utils.js";
 import { ErrorCodes, createCompilerError, defaultOnError } from "./error.js";
-import { makeMap } from "../util.js";
+import { makeMap, extend } from "../util.js";
 
 const NO = () => false;
 const TagType = {
@@ -170,7 +170,51 @@ function parseChildren(
   }
 
   let removedWhitespace = false;
-  // TODO 空格管理，为了更高效的输出
+  // `\n<div>...` 删除开头的空格字符，之前解析 v-pre 用例是卡在这里了
+  // 这里忘记实现了，所以用例 http://www.cheng92.com/vue/vue3-source-code-compiler-core-parse_ts/#headline-3
+  // 得到了三个 child，第二个是 \n，就是因为这里没实现过滤
+
+  if (mode !== TextModes.RAWTEXT) {
+    if (!context.inPre) {
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (node.type === NodeTypes.TEXT) {
+          if (!/[^\t\r\n\f ]/.test(node.content)) {
+            const prev = nodes[i - 1];
+            const next = nodes[i + 1];
+            // 1. 空格是第一个或者最后一个节点，或者
+            // 2. 空格与注释节点相邻
+            // 3. 空格在两个元素之间，就我们遇到的 <div></div>\n<div>...
+            // 上面三种情况的空格会被忽略
+            if (
+              !prev ||
+              !next ||
+              prev.type === NodeTypes.COMMENT ||
+              next.type === NodeTypes.COMMENT ||
+              (prev.type === NodeTypes.ELEMENT &&
+                next.type === NodeTypes.ELEMENT &&
+                /[\r\n]/.test(node.content))
+            ) {
+              removedWhitespace = true;
+              nodes[i] = null;
+            } else {
+              // 否则替换成空格
+              node.content = " ";
+            }
+          } else {
+            // 替换成空格
+            node.content = node.content.replace(/[\t\r\n\f ]+/g, " ");
+          }
+        }
+      }
+    } else if (parent && context.options.isPreTag(parent.tag)) {
+      //如果是 <pre> 删掉第一行的空行
+      const first = nodes[0];
+      if (first && first.type === NodeTypes.TEXT) {
+        first.content = first.content.replace(/^\r?\n/, "");
+      }
+    }
+  }
 
   return removedWhitespace ? nodes.filter(Boolean) : nodes;
 }
@@ -245,7 +289,8 @@ function parseElement(context, ancestors) {
   const element = parseTag(context, TagType.Start, parent);
 
   // pre or v-pre
-  const isPreBoundary = context.inPre && !wasInVPre;
+  // 解析之前是false，解析之后是 true，因为 v-pre/pre 是事先不知道的
+  const isPreBoundary = context.inPre && !wasInPre;
   const isVPreBoundary = context.inVPre && !wasInVPre;
 
   // 自闭合的到这里就可以结束了
@@ -343,19 +388,36 @@ function parseTag(context, type, parent) {
   // log1: 改变位移，将 offset 定位到 </div> 的最有一个 > 上
   // 在这里 context.offset = 10, context.line = 1
   advanceBy(context, match[0].length);
-  // 过滤掉空格
+  // 过滤掉空格, \n\t\r
   advanceSpaces(context);
   // log2: 经过 advance之后 context.offset = 15, context.line = 1
   // 正好过滤 </div 5个字符
   const cursor = getCursor(context);
-  const currSource = context.source;
+  const currentSource = context.source;
 
   // 解析标签元素的属性
   let props = parseAttributes(context, type);
 
-  // TODO-2 in pre ...
+  if (context.options.isPreTag(tag)) {
+    context.inPre = true;
+  }
 
-  // v-pre 指令检测，解析属性
+  // 1. inVPre = false 因为初始化默认不会是 v-pre 的
+  // 2. 只要属性列表中有一个满足：v-pre 指令类型
+  if (
+    !context.inVPre &&
+    props.some((p) => p.type === NodeTypes.DIRECTIVE && p.name === "pre")
+  ) {
+    context.inVPre = true;
+    // 这里恢复之前的解析，因为 <div v-pre>...</div> 走到这里的时候已经解析完了
+    // 所以要恢复属性字符串？
+    extend(context, cursor);
+    context.source = currentSource;
+    // 为什么要重新解析，直接过滤不好吗？
+    // 因为 parseAttribute 中在 inVPre = true 情况下是不会去解析其他指令属性的
+    // 其他指令照样会解析，直接过滤掉所有指令属性不就好了？
+    props = parseAttributes(context, type).filter((p) => p.name !== "v-pre");
+  }
 
   // <div/> 自闭标签
   let isSelfClosing = false;
@@ -369,7 +431,7 @@ function parseTag(context, type, parent) {
       emitError(context, ErrorCodes.END_TAG_WITH_TRAILING_SOLIDUS);
     }
     // 如果是自闭合指针移动两位(/>)，否则只移动一位(>)
-    // 到这里 source = ... </div>
+    // 到这里 source = `>...` || `/>...`
     advanceBy(context, isSelfClosing ? 2 : 1);
   }
 
@@ -418,7 +480,7 @@ function parseTag(context, type, parent) {
     ns,
     tag,
     tagType,
-    props, // TODO
+    props,
     isSelfClosing,
     children: [],
     loc: getSelection(context, start),
