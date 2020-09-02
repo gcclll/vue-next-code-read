@@ -352,6 +352,7 @@ function parseText(context, mode) {
 
   let endIndex = context.source.length;
   for (let i = 0; i < endTokens.length; i++) {
+    // 从 source 的第二个字符开始搜索
     const index = context.source.indexOf(endTokens[i], 1);
     if (index !== -1 && endIndex > index) {
       endIndex = index;
@@ -717,7 +718,8 @@ function parseAttributeValue(context) {
       // 无引号值中非法字符检测
       emitError(
         context,
-        ErrorCodes.UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE
+        ErrorCodes.UNEXPECTED_CHARACTER_IN_UNQUOTED_ATTRIBUTE_VALUE,
+        m.index
       );
     }
 
@@ -799,7 +801,7 @@ function parseBogusComment(context) {
   const contentStart = context.source[1] === "?" ? 1 : 2;
   let content;
 
-  const closeIndex = content.source.indexOf(">");
+  const closeIndex = context.source.indexOf(">");
 
   if (closeIndex === -1) {
     // 没有结束索引，后面所有的都将成为注释
@@ -840,6 +842,19 @@ function isEnd(
           }
         }
       }
+    case TextModes.RCDATA:
+    case TextModes.RAWTEXT: {
+      const parent = last(ancestors);
+      if (parent && startsWithEndTagOpen(s, parent.tag)) {
+        return true;
+      }
+      break;
+    }
+    case TextModes.CDATA:
+      if (s.startsWith("]]>")) {
+        return true;
+      }
+      break;
   }
 
   // 是 TextModes.TEXT 直接返回 source 的内容是否为空了
