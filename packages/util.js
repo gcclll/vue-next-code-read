@@ -1,6 +1,8 @@
 // Make a map and return a function for checking if a key
 // is in that map.
 
+export const NOOP = () => {};
+
 const cacheStringFunction = (fn) => {
   const cache = Object.create(null);
   return (str) => {
@@ -36,7 +38,14 @@ export const def = (obj, key, value) => {
   });
 };
 
+export const isArray = Array.isArray;
+export const isFunction = (val) => typeof val === "function";
+export const isString = (val) => typeof val === "string";
 export const isObject = (val) => val !== null && typeof val === "object";
+export const isPromise = (val) => {
+  return isObject(val) && isFunction(val.then) && isFunction(val.catch);
+};
+
 export const hasChanged = (newValue, oldValue) =>
   newValue !== oldValue && (newValue === newValue || oldValue === oldValue);
 export const hasOwn = (target, key) => target.hasOwnProperty(key);

@@ -1,0 +1,31 @@
+<html>
+  <body>
+    <div id="app">
+      <h1>{{state.count}}</h1>
+      <button @[ename]="() => state.count++">加</button>
+      <button @[ename]="() => state.count--">减</button>
+    </div>
+    <!-- -->
+    <script src="./vue.global.js"></script>
+    <script>
+      console.log(Vue, "00");
+      const { compile } = Vue;
+      const test00 = `
+      <div id="foo" :class="bar.baz">
+        {{ world.burn() }}
+        <div v-if="ok">yes</div>
+        <template v-else>no</template>
+        <div v-for="(value, index) in list"><span>{{ value + index }}</span></div>
+      </div>
+     `;
+
+      const test01 = `simple text`;
+
+      const result = compile(test01.trim(), {
+        sourceMap: true,
+        filename: "foo.vue",
+      });
+      console.log(result, "xx");
+    </script>
+  </body>
+</html>

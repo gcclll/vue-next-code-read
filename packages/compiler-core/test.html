@@ -8,37 +8,46 @@
       import { baseParse, TextModes } from "./parse.js";
       import { ErrorCodes } from "./error.js";
       import { Namespaces } from "./ast.js";
+      import { baseCompile as compile } from "./compile.js";
 
-      const ast = baseParse(
-        `<textarea></div></textarea>`,
-        /* `<template><svg><![CDATA[cdata]]></svg></template>`, */
-        {
-          getNamespace: (tag, parent) => {
-            const ns = parent ? parent.ns : Namespaces.HTML;
-            if (ns === Namespaces.HTML) {
-              if (tag === "svg") {
-                return Namespaces.HTML + 1;
-              }
-            }
-            return ns;
-          },
-          getTextMode: ({ tag }) => {
-            console.log({ tag });
-            if (tag === "textarea") {
-              return TextModes.RCDATA;
-            }
-            if (tag === "script") {
-              return TextModes.RAWTEXT;
-            }
-            return TextModes.DATA;
-          },
-          onError: (err) => {
-            console.log(err);
-          },
+      const source = `
+<div id="foo" :class="bar.baz">
+  {{ world.burn() }}
+  <div v-if="ok">yes</div>
+  <template v-else>no</template>
+  <div v-for="(value, index) in list"><span>{{ value + index }}</span></div>
+</div>
+     `.trim();
+
+      const { code, map, ast } = compile(source, {
+        sourceMap: true,
+        filename: `foo.vue`,
+      });
+
+      console.log(code, map, ast, "compile");
+
+      function getPositionInCode(code, token, expectName = false) {
+        const generatedOffset = code.indexOf(token);
+        let line = 1;
+        let lastNewLinePos = -1;
+        for (let i = 0; i < generatedOffset; i++) {
+          if (code.charCodeAt(i) === 10 /* newline char code */) {
+            line++;
+            lastNewLinePos = i;
+          }
         }
-      );
-
-      console.log(ast, JSON.stringify(ast));
+        const res = {
+          line,
+          column:
+            lastNewLinePos === -1
+              ? generatedOffset
+              : generatedOffset - lastNewLinePos - 1,
+        };
+        if (expectName) {
+          res.name = typeof expectName === "string" ? expectName : token;
+        }
+        return res;
+      }
     </script>
   </body>
 </html>

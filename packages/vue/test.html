@@ -1,0 +1,31 @@
+<html>
+  <body>
+    <div id="app">
+      <h1>{{state.count}}</h1>
+      <button @[ename]="() => state.count++">加</button>
+      <button @[ename]="() => state.count--">减</button>
+    </div>
+    <!-- -->
+    <script src="./vue.global.js"></script>
+    <script>
+      const { createApp, ref, reactive, computed } = Vue;
+      const App = {
+        setup() {
+          const msg = ref("Hello World !");
+
+          const state = reactive({
+            count: 0,
+            double: computed(() => state.count * 2),
+          });
+
+          return {
+            ename: "click",
+            state,
+          };
+        },
+      };
+
+      createApp(App).mount("#app");
+    </script>
+  </body>
+</html>
