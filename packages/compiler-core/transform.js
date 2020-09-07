@@ -3,6 +3,14 @@ import { defaultOnError } from "./error.js";
 import { __DEV__ } from "./utils.js";
 import { NodeTypes } from "./ast.js";
 import { isSingleElementRoot, hoistStatic } from "./transforms/hoistStatic.js";
+import {
+  TO_DISPLAY_STRING,
+  FRAGMENT,
+  helperNameMap,
+  CREATE_BLOCK,
+  CREATE_COMMENT,
+  OPEN_BLOCK,
+} from "./runtimeHelpers.js";
 
 export function createTransformContext(
   root,
@@ -55,7 +63,10 @@ export function createTransformContext(
     childIndex: 0,
 
     // methods
-    helper(name) {},
+    helper(name) {
+      context.helpers.add(name);
+      return name;
+    },
     helperString(name) {},
     replaceNode(node) {},
     removeNode(node) {},
@@ -98,6 +109,11 @@ export function traverseNode(node, context) {
 
   switch (node.type) {
     // ... 省略
+    case NodeTypes.INTERPOLATION:
+      if (!context.ssr) {
+        // 这个函数来自上下文处理中的 helper(name)
+        context.helper(TO_DISPLAY_STRING);
+      }
     case NodeTypes.ROOT:
       traverseChildren(node, context);
       break;
@@ -163,6 +179,7 @@ export function traverseChildren(parent, context) {
     i--;
   };
 
+  console.log(context, parent, "--k");
   for (; i < parent.children.length; i++) {
     const child = parent.children[i];
     // 过略掉字符串，只处理 ast child

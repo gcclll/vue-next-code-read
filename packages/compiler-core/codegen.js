@@ -1,5 +1,6 @@
 import { __BROWSER__ } from "./utils.js";
 import { NodeTypes } from "./ast.js";
+import { helperNameMap } from "./runtimeHelpers.js";
 
 const PURE_ANNOTATION = `/*#__PURE__*/`;
 
@@ -65,6 +66,7 @@ function createCodegenContext(
 
   return context;
 }
+
 export function generate(ast, options = {}) {
   const context = createCodegenContext(ast, options);
   const {
@@ -83,6 +85,11 @@ export function generate(ast, options = {}) {
   const genScopeId = !__BROWSER__ && scopeId != null && mode === "module";
 
   // TODO preambles
+  if (!__BROWSER__ && mode === "module") {
+    // TODO genModulePreamble(ast, context, genScopeId)
+  } else {
+    genFunctionPreamble(ast, context);
+  }
 
   if (genScopeId && !ssr) {
     push(`const render = ${PURE_ANNOTATION}_withId(`);
@@ -103,6 +110,19 @@ export function generate(ast, options = {}) {
     indent();
 
     // TODO hasHelpers
+    if (hasHelpers) {
+      // 比如：插值处理时用到 TO_DISPLAY_STRING helper
+      // 为了避免命名冲突，这里都需要将他们重命名
+
+      push(
+        `const { ${ast.helpers
+          .map((s) => `${helperNameMap[s]} : _${helperNameMap[s]}`)
+          .join(", ")} } = _Vue`
+      );
+
+      push("\n");
+      newline();
+    }
   }
 
   // TODO ast.components 组件处理
@@ -143,6 +163,14 @@ export function generate(ast, options = {}) {
   };
 }
 
+function genFunctionPreamble(ast, context) {
+  const { push, newline } = context;
+
+  // TODO ...
+
+  newline();
+  push(`return `);
+}
 function genNode(node, context) {
   if (typeof node === "string") {
     context.push(node);

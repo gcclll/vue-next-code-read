@@ -7,16 +7,16 @@
     <script type="module">
       import { baseCompile as compile } from "../compile.js";
 
-      const source = `simple text`.trim();
+      const source = `{{ world.burn() }}`.trim();
 
       const result = compile(source, {
-        hoistStatic: true,
         sourceMap: true,
         filename: `foo.vue`,
       });
-      const render = new Function(result.code)();
+      const render = new Function(result.code);
       console.log(result.code, "compiled 1");
       console.log(render, "compiled 2");
+      console.log(render(), "compiled 2");
     </script>
   </body>
 </html>
