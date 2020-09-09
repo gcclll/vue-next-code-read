@@ -114,6 +114,7 @@ export function traverseNode(node, context) {
         // 这个函数来自上下文处理中的 helper(name)
         context.helper(TO_DISPLAY_STRING);
       }
+      break;
     case NodeTypes.ROOT:
       traverseChildren(node, context);
       break;
@@ -179,7 +180,6 @@ export function traverseChildren(parent, context) {
     i--;
   };
 
-  console.log(context, parent, "--k");
   for (; i < parent.children.length; i++) {
     const child = parent.children[i];
     // 过略掉字符串，只处理 ast child

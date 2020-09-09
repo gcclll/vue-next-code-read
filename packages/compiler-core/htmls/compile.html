@@ -14,9 +14,7 @@
         filename: `foo.vue`,
       });
       const render = new Function(result.code);
-      console.log(result.code, "compiled 1");
-      console.log(render, "compiled 2");
-      console.log(render(), "compiled 2");
+      console.log(render(), "compiled");
     </script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 import { __BROWSER__ } from "./utils.js";
 import { NodeTypes } from "./ast.js";
-import { helperNameMap } from "./runtimeHelpers.js";
+import { helperNameMap, TO_DISPLAY_STRING } from "./runtimeHelpers.js";
 
 const PURE_ANNOTATION = `/*#__PURE__*/`;
 
@@ -37,7 +37,9 @@ function createCodegenContext(
     indentLevel: 0,
     pure: false,
     map: undefined,
-    helper(key) {},
+    helper(key) {
+      return `_${helperNameMap[key]}`;
+    },
     push(code, node) {
       context.code += code;
       // TODO 非浏览器环境处理，node 环境
@@ -184,7 +186,30 @@ function genNode(node, context) {
     case NodeTypes.TEXT:
       genText(node, context);
       break;
+    case NodeTypes.SIMPLE_EXPRESSION:
+      // 如：插值内容，属性值
+      genExpression(node, context);
+      break;
+    case NodeTypes.INTERPOLATION:
+      console.log(node, "interpolation");
+      genInterpolation(node, context);
+      break;
   }
+}
+
+function genExpression(node, context) {
+  const { content, isStatic } = node;
+  context.push(isStatic ? JSON.stringify(content) : content, node);
+}
+
+function genInterpolation(node, context) {
+  const { push, helper, pure } = context;
+
+  if (pure) push(PURE_ANNOTATION);
+
+  push(`${helper(TO_DISPLAY_STRING)}(`);
+  genNode(node.content, context);
+  push(`)`);
 }
 
 function genText(node, context) {

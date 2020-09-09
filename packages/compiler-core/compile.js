@@ -1,5 +1,7 @@
 import { defaultOnError, createCompilerError, ErrorCodes } from "./error.js";
 import { transformText } from "./transforms/transformText.js";
+import { transformExpression } from "./transforms/transformExpression.js";
+
 import { __BROWSER__ } from "./utils.js";
 import { transform } from "./transform.js";
 import { generate } from "./codegen.js";
@@ -10,6 +12,7 @@ export function getBaseTransformPreset(prefixIdentifiers) {
     [
       // ... 省略其他，第一阶段我们应该只需要文本转换
       transformText,
+      ...(!__BROWSER__ && prefixIdentifiers ? [transformExpression] : []),
     ],
     {
       // ...省略指令
@@ -28,6 +31,7 @@ export function baseCompile(template, options) {
   const ast =
     typeof template === "string" ? baseParse(template, options) : template;
 
+  console.log(prefixIdentifiers, "base compile");
   // 2. 取出所有 node 和 directive 的 transforms
   const [nodeTransforms, directiveTransforms] = getBaseTransformPreset(
     prefixIdentifiers

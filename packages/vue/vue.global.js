@@ -1793,8 +1793,10 @@ var Vue = (function (exports) {
     const nodeRemoved = () => {
       i--;
     };
+
     for (; i < parent.children.length; i++) {
       const child = parent.children[i];
+      console.log(child, "000");
       if (isString(child)) continue;
       context.parent = parent;
       context.childIndex = i;
