@@ -68,3 +68,8 @@ export const extend = (a, b) => {
   }
   return a;
 };
+
+const camelizeRE = /-(\w)/g;
+export const camelize = cacheStringFunction((str) => {
+  return str.replace(camelizeRE, (_, c) => (c ? c.toUpperCase() : ""));
+});

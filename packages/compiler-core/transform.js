@@ -1,7 +1,7 @@
 import { NOOP } from "../util.js";
 import { defaultOnError } from "./error.js";
-import { __DEV__ } from "./utils.js";
-import { NodeTypes } from "./ast.js";
+import { __DEV__, isVSlot } from "./utils.js";
+import { NodeTypes, ElementTypes, createSimpleExpression } from "./ast.js";
 import { isSingleElementRoot, hoistStatic } from "./transforms/hoistStatic.js";
 import {
   TO_DISPLAY_STRING,
@@ -67,13 +67,28 @@ export function createTransformContext(
       context.helpers.add(name);
       return name;
     },
-    helperString(name) {},
-    replaceNode(node) {},
+    helperString(name) {
+      return `_${helperNameMap[context.helper(name)]}`;
+    },
+    replaceNode(node) {
+      // parent, childIndex 来自 traverseChildren 里面的赋值
+      context.parent.children[context.childIndex] = context.currentNode = node;
+    },
     removeNode(node) {},
     onNodeRemoved: () => {},
     addIdentifiers(exp) {},
     removeIdentifiers(exp) {},
-    hoist(exp) {},
+    hoist(exp) {
+      context.hoists.push(exp);
+      const identifier = createSimpleExpression(
+        `_hoisted_${context.hoists.length}`,
+        false,
+        exp.loc,
+        true
+      );
+      identifier.hoisted = exp;
+      return identifier;
+    },
     cache(exp, isVNode = false) {},
   };
 
@@ -115,6 +130,13 @@ export function traverseNode(node, context) {
         context.helper(TO_DISPLAY_STRING);
       }
       break;
+    case NodeTypes.IF:
+      for (let i = 0; i < node.branches.length; i++) {
+        traverseNode(node.branches[i], context);
+      }
+      break;
+    case NodeTypes.IF_BRANCH:
+    case NodeTypes.ELEMENT:
     case NodeTypes.ROOT:
       traverseChildren(node, context);
       break;
@@ -132,6 +154,7 @@ export function transform(root, options) {
 
   traverseNode(root, context);
 
+  console.log(root, "000");
   if (options.hoistStatic) {
     hoistStatic(root, context);
   }
@@ -153,7 +176,7 @@ export function transform(root, options) {
 }
 
 function createRootCodegen(root, context) {
-  // TODO  helper
+  const { helper } = context;
   const { children } = root;
   const child = children[0];
 
@@ -163,7 +186,13 @@ function createRootCodegen(root, context) {
     // 且孩子节点是一个元素 element 类型，将它放在一个代码块钟返回
     // 如： { code }
     if (isSingleElementRoot(root, child) && child.codegenNode) {
-      // TODO
+      const codegenNode = child.codegenNode;
+      if (codegenNode.type === NodeTypes.VNODE_CALL) {
+        codegenNode.isBlock = true;
+        helper(OPEN_BLOCK);
+        helper(CREATE_BLOCK);
+      }
+      root.codegenNode = codegenNode;
     } else {
       root.codegenNode = child;
     }
@@ -190,4 +219,36 @@ export function traverseChildren(parent, context) {
     context.onNodeRemoved = nodeRemoved;
     traverseNode(child, context);
   }
+}
+
+export function createStructuralDirectiveTransform(name, fn) {
+  const matches =
+    typeof name === "string" ? (n) => n === name : (n) => name.test(n);
+
+  return (node, context) => {
+    if (node.type === NodeTypes.ELEMENT) {
+      const { props } = node;
+
+      // 忽略 v-slot，它在 vSlot.ts 中处理
+      if (node.tagType === ElementTypes.TEMPLATE && props.some(isVSlot)) {
+        return;
+      }
+
+      // 开始收集 v-if 指令的 transform 函数
+      const exitFns = [];
+
+      for (let i = 0; i < props.length; i++) {
+        const prop = props[i];
+        if (prop.type === NodeTypes.DIRECTIVE && matches(prop.name)) {
+          // 删除原节点中的指令属性
+          props.splice(i, 1);
+          i--;
+          const onExit = fn(node, prop, context);
+          if (onExit) exitFns.push(onExit);
+        }
+      }
+
+      return exitFns;
+    }
+  };
 }

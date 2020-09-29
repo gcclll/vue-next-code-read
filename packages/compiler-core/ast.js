@@ -1,3 +1,9 @@
+import {
+  CREATE_BLOCK,
+  CREATE_VNODE,
+  WITH_DIRECTIVES,
+} from "./runtimeHelpers.js";
+
 export const Namespaces = {
   HTML: 0,
 };
@@ -26,25 +32,25 @@ export const NodeTypes = {
   TEXT_CALL: 12,
   // codegen
   VNODE_CALL: 13,
-  JS_CALL_EXPRESSION: 13,
-  JS_OBJECT_EXPRESSION: 14,
-  JS_PROPERTY: 15,
-  JS_ARRAY_EXPRESSION: 16,
-  JS_FUNCTION_EXPRESSION: 17,
-  JS_CONDITIONAL_EXPRESSION: 18,
-  JS_CACHE_EXPRESSION: 19,
+  JS_CALL_EXPRESSION: 14,
+  JS_OBJECT_EXPRESSION: 15,
+  JS_PROPERTY: 16,
+  JS_ARRAY_EXPRESSION: 17,
+  JS_FUNCTION_EXPRESSION: 18,
+  JS_CONDITIONAL_EXPRESSION: 19,
+  JS_CACHE_EXPRESSION: 20,
 
   // ssr codegen
-  JS_BLOCK_STATEMENT: 20,
-  JS_TEMPLATE_LITERAL: 21,
-  JS_IF_STATEMENT: 22,
-  JS_ASSIGNMENT_EXPRESSION: 23,
-  JS_SEQUENCE_EXPRESSION: 24,
-  JS_RETURN_STATEMENT: 25,
+  JS_BLOCK_STATEMENT: 21,
+  JS_TEMPLATE_LITERAL: 22,
+  JS_IF_STATEMENT: 23,
+  JS_ASSIGNMENT_EXPRESSION: 24,
+  JS_SEQUENCE_EXPRESSION: 25,
+  JS_RETURN_STATEMENT: 26,
 };
 
 export const locStub /* SourceLocation*/ = {
-  soure: "",
+  source: "",
   start: { line: 1, column: 1, offset: 0 },
   end: { line: 1, column: 1, offset: 0 },
 };
@@ -68,8 +74,47 @@ export function createRoot(
   };
 }
 
+export function createVNodeCall(
+  context,
+  tag,
+  props,
+  children,
+  patchFlag,
+  dynamicProps,
+  directives,
+  isBlock,
+  isForBlock,
+  loc = locStub
+) {
+  if (context) {
+    if (isBlock) {
+      context.helper(OPEN_BLOCK);
+      context.helper(CREATE_BLOCK);
+    } else {
+      context.helper(CREATE_VNODE);
+    }
+
+    if (directives) {
+      context.helper(WITH_DIRECTIVES);
+    }
+  }
+
+  return {
+    type: NodeTypes.VNODE_CALL,
+    tag,
+    props,
+    children,
+    patchFlag,
+    dynamicProps,
+    directives,
+    isBlock,
+    isForBlock,
+    loc,
+  };
+}
+
 // 数组表达式
-export function createArrayExpression(elements, loc) {
+export function createArrayExpression(elements, loc = locStub) {
   return {
     type: NodeTypes.JS_ARRAY_EXPRESSION,
     loc,
@@ -77,7 +122,7 @@ export function createArrayExpression(elements, loc) {
   };
 }
 
-export function createObjectExpression(properties, loc) {
+export function createObjectExpression(properties, loc = locStub) {
   return {
     type: NodeTypes.JS_OBJECT_EXPRESSION,
     loc,
@@ -97,7 +142,7 @@ export function createObjectProperty(key, value) {
 export function createSimpleExpression(
   content,
   isStatic,
-  loc,
+  loc = locStub,
   isConstant = false
 ) {
   return {

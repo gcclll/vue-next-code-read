@@ -19,13 +19,22 @@
       </div>
      `;
 
-      const test01 = `{{ world.burn() }}`;
+      const test01 = `<div><div v-if="ok">yes</div></div>`;
 
-      const result = compile(test01.trim(), {
+      const render = compile(test01.trim(), {
         sourceMap: true,
         filename: "foo.vue",
       });
-      console.log(result, "xx");
+      console.log(render, "xx");
+
+      /* const result = render({
+       *   world: {
+       *     burn() {
+       *       return "burn the world !";
+       *     },
+       *   },
+       * }); */
+      /* console.log(JSON.stringify(result), "yy"); */
     </script>
   </body>
 </html>

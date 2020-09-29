@@ -6,15 +6,26 @@
   <body>
     <script type="module">
       import { baseCompile as compile } from "../compile.js";
+      const s = `
+      <div id="foo" :class="bar.baz">
+        {{ world.burn() }}
+        <div v-if="ok">yes</div>
+        <template v-else>no</template>
+        <div v-for="(value, index) in list"><span>{{ value + index }}</span></div>
+      </div>
+     `;
 
-      const source = `{{ world.burn() }}`.trim();
+      const Vue = {};
+      const source = `<div><div v-if="ok">yes</div></div>`.trim();
 
       const result = compile(source, {
         sourceMap: true,
         filename: `foo.vue`,
+        hoistStatic: true,
       });
+      console.log(result, "000");
       const render = new Function(result.code);
-      console.log(render(), "compiled");
+      console.log(render, "compiled");
     </script>
   </body>
 </html>

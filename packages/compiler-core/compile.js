@@ -1,6 +1,9 @@
 import { defaultOnError, createCompilerError, ErrorCodes } from "./error.js";
 import { transformText } from "./transforms/transformText.js";
 import { transformExpression } from "./transforms/transformExpression.js";
+import { transformElement } from "./transforms/transformElement.js";
+import { transformBind } from "./transforms/vBind.js";
+import { transformIf } from "./transforms/vIf.js";
 
 import { __BROWSER__ } from "./utils.js";
 import { transform } from "./transform.js";
@@ -10,12 +13,15 @@ import { baseParse } from "./parse.js";
 export function getBaseTransformPreset(prefixIdentifiers) {
   return [
     [
+      transformIf,
       // ... 省略其他，第一阶段我们应该只需要文本转换
-      transformText,
       ...(!__BROWSER__ && prefixIdentifiers ? [transformExpression] : []),
+      transformElement,
+      transformText,
     ],
     {
       // ...省略指令
+      bind: transformBind,
     },
   ];
 }
@@ -25,7 +31,7 @@ export function baseCompile(template, options) {
 
   // ... 略去错误❎处理
   const prefixIdentifiers =
-    !__BROWSER__ && (options.prefixIdentifiers === true || isModuleMode);
+    !__BROWSER__ && (options.prefixIdetifiers === true || isModuleMode);
 
   // 1. baseParse 得到 AST 对象，两种情况：1. 未解析的模板，2. 以解析之后的 ast 对象
   const ast =

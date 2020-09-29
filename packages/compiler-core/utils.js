@@ -6,10 +6,10 @@ import {
   KEEP_ALIVE,
   BASE_TRANSITION,
 } from "./runtimeHelpers.js";
-import { NodeTypes, ElementTypes } from "./ast.js";
+import { NodeTypes, ElementTypes, createObjectExpression } from "./ast.js";
 
 export const __DEV__ = true;
-export const __BROWSER__ = false;
+export const __BROWSER__ = true;
 export function advancePositionWithMutation(
   pos,
   source,
@@ -70,4 +70,116 @@ export function isSlotOutlet(node) {
 export function isText(node) {
   // 插值或 text 均视为文本
   return node.type === NodeTypes.INTERPOLATION || node.type === NodeTypes.TEXT;
+}
+
+// 找出 props 中指令类型
+export function findDir(node, name, allowEmpty = false) {
+  for (let i = 0; i < node.props.length; i++) {
+    const p = node.props[i];
+    if (
+      p.type === NodeTypes.DIRECTIVE &&
+      (allowEmpty || p.exp) &&
+      (typeof name === "string" ? p.name === name : name.test(p.name))
+    ) {
+      return p;
+    }
+  }
+}
+
+export function findProp(node, name, dynamicOnly = false, allowEmpty = false) {
+  for (let i = 0; i < node.props.length; i++) {
+    const p = node.props[i];
+    if (p.type === NodeTypes.ATTRIBUTE) {
+      if (dynamicOnly) continue;
+      // 找到该属性，且必须有值或者允许值为空
+      if (p.name === name && (p.value || allowEmpty)) {
+        return p;
+      }
+    } else if (p.name === "bind" && p.exp && isBindKey(p.arg, name)) {
+      // 属性名为 bind(v-bind 指令最后解析成 name 为 bind 的属性)
+      return p;
+    }
+  }
+}
+
+export function isBindKey(arg, name) {
+  return !!(
+    // v-bind 属性的值
+    (
+      arg &&
+      arg.type === NodeTypes.SIMPLE_EXPRESSION &&
+      arg.isStatic &&
+      arg.content === name
+    )
+  );
+}
+
+export function hasDynamicKeyVBind(node) {
+  return node.props.some(
+    (p) =>
+      p.type === NodeTypes.DIRECTIVE &&
+      p.name === "bind" &&
+      (!p.arg || // v-bind="obj"
+      p.arg.type !== NodeTypes.SIMPLE_EXPRESSION || // v-bind:[_ctx.foo]
+        !p.arg.isStatic) // v-bind:[foo]
+  );
+}
+
+export function toValidAssetId(
+  name,
+  type // 'component' | 'directive'
+) {
+  return `_${type}_${name.replace(/[^\w]/g, "_")}`;
+}
+
+export function getInnerRange(
+  loc, //: SourceLocation,
+  offset, // : number,
+  length //?: number
+) {
+  const source = loc.source.substr(offset, length);
+  const newLoc = {
+    source,
+    start: advancePositionWithClone(loc.start, loc.source, offset),
+    end: loc.end,
+  };
+
+  if (length != null) {
+    newLoc.end = advancePositionWithClone(
+      loc.start,
+      loc.source,
+      offset + length
+    );
+  }
+
+  return newLoc;
+}
+
+const nonIdentifierRE = /^\d|[^\$\w]/;
+export const isSimpleIdentifier = (name) => !nonIdentifierRE.test(name);
+
+export function isVSlot(p) {
+  return p.type === NodeTypes.DIRECTIVE && p.name === "slot";
+}
+
+export function injectProp(node, prop, context) {
+  let propsWithInjection;
+  const props =
+    node.type === NodeTypes.VNODE_CALL ? node.props : node.arguments[2];
+
+  if (props == null || typeof props === "string") {
+    propsWithInjection = createObjectExpression([prop]);
+  } else if (props.type === NodeTypes.JS_CALL_EXPRESSION) {
+    // TODO
+  } else if (props.type === NodeTypes.SIMPLE_EXPRESSION) {
+    // TODO
+  } else {
+    // TODO
+  }
+
+  if (node.type === NodeTypes.VNODE_CALL) {
+    node.props = propsWithInjection;
+  } else {
+    node.arguments[2] = propsWithInjection;
+  }
 }
