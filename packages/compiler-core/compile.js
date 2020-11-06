@@ -4,6 +4,7 @@ import { transformExpression } from "./transforms/transformExpression.js";
 import { transformElement } from "./transforms/transformElement.js";
 import { transformBind } from "./transforms/vBind.js";
 import { transformIf } from "./transforms/vIf.js";
+import { transformOnce } from "./transforms/vOnce.js";
 
 import { __BROWSER__ } from "./utils.js";
 import { transform } from "./transform.js";
@@ -13,6 +14,7 @@ import { baseParse } from "./parse.js";
 export function getBaseTransformPreset(prefixIdentifiers) {
   return [
     [
+      transformOnce,
       transformIf,
       // ... 省略其他，第一阶段我们应该只需要文本转换
       ...(!__BROWSER__ && prefixIdentifiers ? [transformExpression] : []),

@@ -1,4 +1,5 @@
 import { isSlotOutlet, findProp, __BROWSER__ } from "../utils.js";
+import { isString, isSymbol } from "../../util.js";
 import { NodeTypes, ElementTypes } from "../ast.js";
 import { PatchFlags } from "../../types/patchFlags.js";
 

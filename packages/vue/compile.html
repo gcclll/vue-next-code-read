@@ -10,7 +10,7 @@
     <script>
       console.log(Vue, "00");
       const { compile } = Vue;
-      const test00 = `
+      let code = `
       <div id="foo" :class="bar.baz">
         {{ world.burn() }}
         <div v-if="ok">yes</div>
@@ -19,9 +19,15 @@
       </div>
      `;
 
-      const test01 = `<div><div v-if="ok">yes</div></div>`;
+      // code = `<div id="foo" :class="bar.baz">{{world.burn()}}<div>child</div></div>`;
+      // code = `<div><div v-if="ok">yes</div></div>`;
 
-      const render = compile(test01.trim(), {
+      // code = `<div>{{world.burn()}}</div>`;
+      // code = `<div>{{world.burn()}}<div v-if="ok">yes</div></div>`;
+      // code = `<div><p v-once>{{ world.burn() }}<p/></div>`
+      code = `<div><p v-once>test v-once</p></div>`;
+
+      const render = compile(code.trim(), {
         sourceMap: true,
         filename: "foo.vue",
       });

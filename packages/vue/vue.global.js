@@ -673,7 +673,7 @@ var Vue = (function (exports) {
         p.type === 7 /* DIRECTIVE */ &&
         p.name === "bind" &&
         (!p.arg || // v-bind="obj"
-        p.arg.type !== 4 /* SIMPLE_EXPRESSION */ || // v-bind:[_ctx.foo]
+          p.arg.type !== 4 /* SIMPLE_EXPRESSION */ || // v-bind:[_ctx.foo]
           !p.arg.isStatic) // v-bind:[foo]
     );
   }
@@ -883,7 +883,7 @@ var Vue = (function (exports) {
                 prev.type === 3 /* COMMENT */ ||
                 next.type === 3 /* COMMENT */ ||
                 (prev.type === 1 /* ELEMENT */ &&
-                next.type === 1 /* ELEMENT */ &&
+                  next.type === 1 /* ELEMENT */ &&
                   /[\r\n]/.test(node.content))
               ) {
                 removedWhitespace = true;
@@ -1500,7 +1500,7 @@ var Vue = (function (exports) {
             const flag = getPatchFlag(codegenNode);
             if (
               (!flag ||
-              flag === 512 /* NEED_PATCH */ ||
+                flag === 512 /* NEED_PATCH */ ||
                 flag === 1) /* TEXT */ &&
               !hasDynamicKeyOrRef(child) &&
               !hasCachedProps()
@@ -3837,18 +3837,18 @@ var Vue = (function (exports) {
     return [
       [
         transformOnce,
-        transformIf,
-        transformFor,
+        // transformIf,
+        // transformFor,
         ...[],
-        transformSlotOutlet,
+        // transformSlotOutlet,
         transformElement,
-        trackSlotScopes,
+        // trackSlotScopes,
         transformText,
       ],
       {
-        on: transformOn,
-        bind: transformBind,
-        model: transformModel,
+        // on: transformOn,
+        // bind: transformBind,
+        // model: transformModel,
       },
     ];
   }
@@ -3879,7 +3879,7 @@ var Vue = (function (exports) {
       prefixIdentifiers,
       nodeTransforms: [
         ...nodeTransforms,
-        ...(options.nodeTransforms || []), // user transforms
+        // ...(options.nodeTransforms || []), // user transforms
       ],
       directiveTransforms: {
         ...directiveTransforms,
@@ -4341,7 +4341,7 @@ var Vue = (function (exports) {
     );
   }
 
-  const DOMNodeTransforms = [transformStyle, ...[warnTransitionChildren]];
+  const DOMNodeTransforms = []; // [transformStyle, ...[warnTransitionChildren]];
   const DOMDirectiveTransforms = {
     cloak: noopDirectiveTransform,
     html: transformVHtml,
@@ -6736,8 +6736,8 @@ var Vue = (function (exports) {
       // vnode should not be considered dynamic due to handler caching.
       patchFlag !== 32 /* HYDRATE_EVENTS */ &&
       (patchFlag > 0 ||
-      shapeFlag & 128 /* SUSPENSE */ ||
-      shapeFlag & 4 /* STATEFUL_COMPONENT */ ||
+        shapeFlag & 128 /* SUSPENSE */ ||
+        shapeFlag & 4 /* STATEFUL_COMPONENT */ ||
         shapeFlag & 2) /* FUNCTIONAL_COMPONENT */
     ) {
       currentBlock.push(vnode);

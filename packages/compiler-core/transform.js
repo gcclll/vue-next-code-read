@@ -1,7 +1,12 @@
 import { NOOP } from "../util.js";
 import { defaultOnError } from "./error.js";
 import { __DEV__, isVSlot } from "./utils.js";
-import { NodeTypes, ElementTypes, createSimpleExpression } from "./ast.js";
+import {
+  NodeTypes,
+  ElementTypes,
+  createSimpleExpression,
+  createCacheExpression,
+} from "./ast.js";
 import { isSingleElementRoot, hoistStatic } from "./transforms/hoistStatic.js";
 import {
   TO_DISPLAY_STRING,
@@ -89,7 +94,9 @@ export function createTransformContext(
       identifier.hoisted = exp;
       return identifier;
     },
-    cache(exp, isVNode = false) {},
+    cache(exp, isVNode = false) {
+      return createCacheExpression(++context.cached, exp, isVNode);
+    },
   };
 
   function addId(id) {}
@@ -142,6 +149,7 @@ export function traverseNode(node, context) {
       break;
   }
 
+  context.currentNode = node;
   let i = exitFns.length;
   // 执行所有转换
   while (i--) {

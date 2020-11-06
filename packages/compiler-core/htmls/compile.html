@@ -6,19 +6,23 @@
   <body>
     <script type="module">
       import { baseCompile as compile } from "../compile.js";
-      const s = `
-      <div id="foo" :class="bar.baz">
-        {{ world.burn() }}
-        <div v-if="ok">yes</div>
-        <template v-else>no</template>
-        <div v-for="(value, index) in list"><span>{{ value + index }}</span></div>
-      </div>
-     `;
+      let code = `
+       <div id="foo" :class="bar.baz">
+         {{ world.burn() }}
+         <div v-if="ok">yes</div>
+       </div>
+      `;
+
+      // <template v-else>no</template>
+      // <div v-for="(value, index) in list"><span>{{ value + index }}</span></div>
 
       const Vue = {};
-      const source = `<div><div v-if="ok">yes</div></div>`.trim();
+      // code = `<div><div v-if="ok">yes</div></div>`.trim();
+      // code = `<div>{{world.burn()}}</div>`;
+      // code =`<div>{{world.burn()}}<div>yes</div></div>`
+      code = `<div><p v-once>test v-once</p></div>`;
 
-      const result = compile(source, {
+      const result = compile(code.trim(), {
         sourceMap: true,
         filename: `foo.vue`,
         hoistStatic: true,

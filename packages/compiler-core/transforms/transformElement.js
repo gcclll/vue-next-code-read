@@ -236,7 +236,7 @@ export function buildProps(node, context, props = node.props, ssr = false) {
       // TODO v-slot
 
       // TODO v-once
-
+      if (name === "once") continue;
       // TODO v-is 或 :is + <component>
 
       // TODO isOn && ssr

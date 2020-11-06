@@ -12,6 +12,7 @@ import {
   CREATE_BLOCK,
   PUSH_SCOPE_ID,
   POP_SCOPE_ID,
+  SET_BLOCK_TRACKING,
 } from "./runtimeHelpers.js";
 import { __DEV__ } from "./error.js";
 
@@ -232,6 +233,7 @@ function genNode(node, context) {
     return;
   }
 
+  console.log(node, "gen node");
   // TODO is symbol
 
   switch (node.type) {
@@ -253,6 +255,9 @@ function genNode(node, context) {
     case NodeTypes.TEXT_CALL:
       genNode(node.codegenNode, context);
       break;
+    case NodeTypes.COMPOUND_EXPRESSION:
+      genCompoundExpression(node, context);
+      break;
     case NodeTypes.VNODE_CALL:
       genVNodeCall(node, context);
       break;
@@ -266,6 +271,10 @@ function genNode(node, context) {
     case NodeTypes.JS_CONDITIONAL_EXPRESSION:
       genConditionalExpression(node, context);
       break;
+    case NodeTypes.JS_CACHE_EXPRESSION:
+      // v-once, ...
+      genCacheExpression(node, context);
+      break;
     // TODO ssr
     case NodeTypes.IF_BRANCH:
       break;
@@ -273,6 +282,33 @@ function genNode(node, context) {
       // TODO
       break;
   }
+}
+
+function genCacheExpression(node, context) {
+  const { push, helper, indent, deindent, newline } = context;
+
+  // context.cache[] 中的索引，transform 阶段生成的结构里面就包含索引
+  // { value: {...node}, index: ++context.cached, type: 20, ..., isVNode: true }
+  push(`_cache[${node.index}] || (`);
+  if (node.isVNode) {
+    indent();
+    push(`${helper(SET_BLOCK_TRACKING)}(-1),`);
+    newline();
+  }
+
+  // exp = _cache[1] || (_cache[1] = createVNode(...))
+  push(`_cache[${node.index}] = `);
+  genNode(node.value, context);
+  if (node.isVNode) {
+    push(`,`);
+    newline();
+    push(`${helper(SET_BLOCK_TRACKING)}(1),`);
+    newline();
+    push(`_cache[${node.index}]`);
+    deindent();
+  }
+
+  push(`)`);
 }
 
 function genConditionalExpression(node, context) {
