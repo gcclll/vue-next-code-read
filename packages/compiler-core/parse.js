@@ -596,19 +596,32 @@ function parseAttribute(context, nameSet) {
     // 2. (?:(?::|^@|^#)([^\.]+))? -> 匹配 :,@,# 后面的变量名，如：v-bind:name
     //   或缩写 :varname, @eventname, #slotname 后面的名称
     // 3. (.+)?$ 匹配任意字符
-    const match = /(?:^v-([a-z0-9]+))?(?:(?::|^@|^#)([^\.]+))?(.+)?$/i.exec(
+    // 正则修改:
+    // 原：/(?:^v-([a-z0-9]+))?(?:(?::|^@|^#)([^\.]+))?(.+)?$/i
+    // 新：FIX [a-z0-9-] 少了个 - 导致 else-if 被解析成了 else
+    const match = /(?:^v-([a-z0-9-]+))?(?:(?::|^@|^#)(\[[^\]]+\]|[^\.]+))?(.+)?$/i.exec(
       name
     );
+
+    console.log(match, "000");
+    const dirName =
+      match[1] ||
+      (startsWith(name, ":") ? "bind" : startsWith(name, "@") ? "on" : "slot");
 
     let arg;
 
     // ([a-z0-9]+), ([^\.]+)
     if (match[2]) {
+      const isSlot = dirName === "slot";
       const startOffset = name.indexOf(match[2]);
       const loc = getSelection(
         context,
         getNewPosition(context, start, startOffset),
-        getNewPosition(context, start, startOffset + match[2].length)
+        getNewPosition(
+          context,
+          start,
+          startOffset + match[2].length + ((isSlot && match[3]) || "").length
+        )
       );
 
       let content = match[2];
@@ -627,6 +640,8 @@ function parseAttribute(context, nameSet) {
         }
 
         content = content.substr(1, content.length - 2);
+      } else if (isSlot) {
+        content += match[3] || "";
       }
 
       arg = {
@@ -651,9 +666,7 @@ function parseAttribute(context, nameSet) {
     return {
       type: NodeTypes.DIRECTIVE,
       // : -> v-bind, @ -> v-on, # -> v-slot 的缩写
-      name:
-        match[1] ||
-        (name.startsWith(":") ? "bind" : name.startsWith("@") ? "on" : "slot"),
+      name: dirName,
       exp: value && {
         type: NodeTypes.SIMPLE_EXPRESSION,
         content: value.content,

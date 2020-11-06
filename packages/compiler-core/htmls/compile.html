@@ -20,7 +20,13 @@
       // code = `<div><div v-if="ok">yes</div></div>`.trim();
       // code = `<div>{{world.burn()}}</div>`;
       // code =`<div>{{world.burn()}}<div>yes</div></div>`
-      code = `<div><p v-once>test v-once</p></div>`;
+      // code = `<div><p v-once>test v-once</p></div>`;
+      code = `
+<div>
+  <div v-if="ok">yes</div>
+  <div v-else-if="okk">yess</div>
+  <div v-else>no</div>
+</div>`;
 
       const result = compile(code.trim(), {
         sourceMap: true,

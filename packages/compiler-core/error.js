@@ -58,6 +58,7 @@ export const ErrorCodes = {
   // to avoid collision of error codes. This should always be kept as the last
   // item.
   __EXTEND_POINT__: 47,
+  X_V_IF_SAME_KEY: 48,
 };
 
 export const errorMessages = {
@@ -104,6 +105,7 @@ export const errorMessages = {
 
   // transform errors
   [ErrorCodes.X_V_IF_NO_EXPRESSION]: `v-if/v-else-if is missing expression.`,
+  [ErrorCodes.X_V_IF_SAME_KEY]: `v-if/else branches must use unique keys.`,
   [ErrorCodes.X_V_ELSE_NO_ADJACENT_IF]: `v-else/v-else-if has no adjacent v-if.`,
   [ErrorCodes.X_V_FOR_NO_EXPRESSION]: `v-for is missing expression.`,
   [ErrorCodes.X_V_FOR_MALFORMED_EXPRESSION]: `v-for has invalid expression.`,

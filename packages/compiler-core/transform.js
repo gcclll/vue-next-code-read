@@ -79,7 +79,36 @@ export function createTransformContext(
       // parent, childIndex 来自 traverseChildren 里面的赋值
       context.parent.children[context.childIndex] = context.currentNode = node;
     },
-    removeNode(node) {},
+    removeNode(node) {
+      if (__DEV__ && !context.parent) {
+        throw new Error(`Cannot, remove root node.`);
+      }
+      const list = context.parent.children;
+      // 先从节点孩子中找，然后取当前节点
+      const removalIndex = node
+        ? list.indexOf(node)
+        : context.currentNode
+        ? context.childIndex
+        : -1;
+
+      if (__DEV__ && removalIndex < 0) {
+        throw new Error(`node being removed is not a child of current parent`);
+      }
+
+      if (!node || node === context.currentNode) {
+        // 删除的是当前 traverseNode 递归中正遍历的节点
+        context.currentNode = null;
+        context.onNodeRemoved();
+      } else {
+        // 删除当前节点前面的兄弟节点
+        if (context.childIndex > removalIndex) {
+          context.childIndex--;
+          context.onNodeRemoved();
+        }
+      }
+      // 执行删除
+      context.parent.children.splice(removalIndex, 1);
+    },
     onNodeRemoved: () => {},
     addIdentifiers(exp) {},
     removeIdentifiers(exp) {},
