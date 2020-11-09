@@ -6743,7 +6743,7 @@ var Vue = (function (exports) {
           dynamicChildren &&
           // #1153: fast path should not be taken for non-stable (v-for) fragments
           (type !== Fragment ||
-            (patchFlag > 0 && patchFlag & 64) /* STABLE_FRAGMENT */)
+            (patchFlag > 0 && patchFlag & 64)) /* STABLE_FRAGMENT */
         ) {
           // fast path for block nodes: only need to unmount dynamic children.
           unmountChildren(
@@ -6756,7 +6756,7 @@ var Vue = (function (exports) {
         } else if (
           (type === Fragment &&
             (patchFlag & 128 /* KEYED_FRAGMENT */ ||
-              patchFlag & 256) /* UNKEYED_FRAGMENT */) ||
+              patchFlag & 256)) /* UNKEYED_FRAGMENT */ ||
           (!optimized && shapeFlag & 16) /* ARRAY_CHILDREN */
         ) {
           unmountChildren(children, parentComponent, parentSuspense);
@@ -13753,8 +13753,10 @@ var Vue = (function (exports) {
   const transformElement = (node, context) => {
     if (
       !(
-        node.type === 1 /* ELEMENT */ &&
-        (node.tagType === 0 /* ELEMENT */ || node.tagType === 1) /* COMPONENT */
+        (
+          node.type === 1 /* ELEMENT */ &&
+          (node.tagType === 0 /* ELEMENT */ || node.tagType === 1)
+        ) /* COMPONENT */
       )
     ) {
       return;
@@ -14465,7 +14467,7 @@ var Vue = (function (exports) {
           (children.length === 1 &&
             (node.type === 0 /* ROOT */ ||
               (node.type === 1 /* ELEMENT */ &&
-                node.tagType === 0) /* ELEMENT */))
+                node.tagType === 0))) /* ELEMENT */
         ) {
           return;
         }
@@ -14575,19 +14577,19 @@ var Vue = (function (exports) {
   function getBaseTransformPreset(prefixIdentifiers) {
     return [
       [
-        transformOnce,
-        transformIf,
+        // transformOnce,
+        // transformIf,
         transformFor,
         ...[transformExpression],
-        transformSlotOutlet,
+        // transformSlotOutlet,
         transformElement,
-        trackSlotScopes,
+        // trackSlotScopes,
         transformText,
       ],
       {
-        on: transformOn,
+        // on: transformOn,
         bind: transformBind,
-        model: transformModel,
+        // model: transformModel,
       },
     ];
   }
@@ -14619,7 +14621,7 @@ var Vue = (function (exports) {
         prefixIdentifiers,
         nodeTransforms: [
           ...nodeTransforms,
-          ...(options.nodeTransforms || []), // user transforms
+          // ...(options.nodeTransforms || []), // user transforms
         ],
         directiveTransforms: extend(
           {},
